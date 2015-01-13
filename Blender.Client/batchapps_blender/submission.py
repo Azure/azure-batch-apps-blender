@@ -1,9 +1,10 @@
 #-------------------------------------------------------------------------
-# The Blender Batch Apps Sample
 #
-# Copyright (c) Microsoft Corporation. All rights reserved. 
+# Batch Apps Blender Addon
 #
-# The MIT License (MIT)
+# Copyright (c) Microsoft Corporation.  All rights reserved.
+#
+# MIT License
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the ""Software""), to deal
@@ -170,7 +171,7 @@ class BatchAppsSubmission(object):
 
         :Returns:
             - Blender-specific value {'RUNNING_MODAL'} to indicate the operator
-              wil continue to process after the completion of this function.
+              will continue to process after the completion of this function.
         """
         self.props.thread.start()
         context.scene.batchapps_session.log.debug("SubmitThread initiated.")
@@ -222,8 +223,27 @@ class BatchAppsSubmission(object):
             - Blender-specific value {'FINISHED'} to indicate the operator has
               completed its action.
         """
-        context.scene.batchapps_session.page = "SUBMIT"
+        bpy.context.scene.batchapps_session.page = "SUBMIT"
+        self.valid_scene(context)
+
         return {'FINISHED'}
+
+    def valid_scene(self, context):
+        """
+        Display warnings if the selected frame range of format are invalid.
+
+        :Args:
+            - context (:class:`bpy.types.Context`): The current blender
+              context.
+
+        """
+        if not context.scene.batchapps_submission.valid_range:
+            context.scene.batchapps_session.log.warning(
+                "Selected frame range falls outside global range.")
+
+        if not context.scene.batchapps_submission.valid_format:
+            context.scene.batchapps_session.log.warning(
+                "Invalid output format - using PNG instead.")
 
     def gather_parameters(self):
         """
@@ -351,12 +371,13 @@ class BatchAppsSubmission(object):
         session = bpy.context.scene.batchapps_session
         assets = bpy.context.scene.batchapps_assets
         session.log.info("Starting new job submission.")
+        self.valid_scene(bpy.context)
 
         new_job = self.batchapps_job.create_job(self.get_title())
         self.configure_assets(new_job)
 
         new_job.pool = self.get_pool()
-        new_job.instances = self.props.display.number_cores
+        new_job.instances = self.props.display.pool_size
         new_job.params = self.gather_parameters()
         new_job.params['jobfile'] = new_job.source
 

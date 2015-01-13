@@ -1,9 +1,10 @@
 #-------------------------------------------------------------------------
-# Azure Batch Apps Blender Sample
 #
-# Copyright (c) Microsoft Corporation. All rights reserved.
+# Batch Apps Blender Addon
 #
-# The MIT License (MIT)
+# Copyright (c) Microsoft Corporation.  All rights reserved.
+#
+# MIT License
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the ""Software""), to deal

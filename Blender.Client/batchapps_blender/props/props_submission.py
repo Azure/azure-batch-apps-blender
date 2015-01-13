@@ -1,9 +1,10 @@
 #-------------------------------------------------------------------------
-# The Blender Batch Apps Sample
 #
-# Copyright (c) Microsoft Corporation. All rights reserved. 
+# Batch Apps Blender Addon
 #
-# The MIT License (MIT)
+# Copyright (c) Microsoft Corporation.  All rights reserved.
+#
+# MIT License
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the ""Software""), to deal
@@ -24,7 +25,6 @@
 # THE SOFTWARE.
 #
 #--------------------------------------------------------------------------
-
 import bpy
 
 @bpy.app.handlers.persistent
@@ -50,7 +50,6 @@ def framecheck(*args):
 
     if ((submission.start_f < bpy.context.scene.frame_start) or 
         (submission.end_f > bpy.context.scene.frame_end)):
-        session.log.warning("Selected frame range falls outside global range.")
         submission.valid_range = False
 
     else:
@@ -74,7 +73,6 @@ def formatcheck(*args):
 
     format = bpy.context.scene.render.image_settings.file_format
     if format not in submission.supported_formats:
-        session.log.warning("Invalid output format - using PNG instead.")
         submission.valid_format = False
         submission.image_format = 'PNG'
 
@@ -138,7 +136,7 @@ class SubmissionDisplayProps(bpy.types.PropertyGroup):
         'OPEN_EXR_MULTILAYER': 'MULTILAYER',
         'TARGA_RAW': 'RAWTGA'}
 
-    number_cores = bpy.props.IntProperty(
+    pool_size = bpy.props.IntProperty(
         description="Number of instances in pool",
         default=3,
         min=3,

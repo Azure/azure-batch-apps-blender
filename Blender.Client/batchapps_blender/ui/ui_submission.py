@@ -1,9 +1,10 @@
 #-------------------------------------------------------------------------
-# The Blender Batch Apps Sample
 #
-# Copyright (c) Microsoft Corporation. All rights reserved. 
+# Batch Apps Blender Addon
 #
-# The MIT License (MIT)
+# Copyright (c) Microsoft Corporation.  All rights reserved.
+#
+# MIT License
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the ""Software""), to deal
@@ -101,7 +102,7 @@ def pool_select(ui, layout, active):
     else:
         ui.label("Auto provision a pool for this job", layout.row(),
                  active=active)
-        ui.prop(bpy.context.scene.batchapps_submission, "number_cores",
+        ui.prop(bpy.context.scene.batchapps_submission, "pool_size",
                 layout.row(), "Number of instances:", active=active)
 
 def pre_submission(ui, layout):

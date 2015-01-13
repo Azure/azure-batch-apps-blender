@@ -31,7 +31,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.Azure.Batch.Apps.Cloud">
-      <HintPath>..\packages\Microsoft.Azure.Batch.Apps.Cloud.1.0.0\lib\net45\Microsoft.Azure.Batch.Apps.Cloud.dll</HintPath>
+      <HintPath>..\packages\Microsoft.Azure.Batch.Apps.Cloud.1.0.1-preview\lib\net45\Microsoft.Azure.Batch.Apps.Cloud.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -54,9 +54,7 @@
     <Compile Include="TaskProcessor.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config">
-      <SubType>Designer</SubType>
-    </None>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

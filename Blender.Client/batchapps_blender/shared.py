@@ -1,9 +1,10 @@
 #-------------------------------------------------------------------------
-# The Blender Batch Apps Sample
 #
-# Copyright (c) Microsoft Corporation. All rights reserved. 
+# Batch Apps Blender Addon
 #
-# The MIT License (MIT)
+# Copyright (c) Microsoft Corporation.  All rights reserved.
+#
+# MIT License
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the ""Software""), to deal
@@ -110,6 +111,7 @@ class BatchAppsSettings(object):
         :Returns:
             - A :class:`.batchapps.Configuration` object.
         """
+        cfg = None
         try:
             data_dir = os.path.split(self.props.data_dir)
 
@@ -122,11 +124,13 @@ class BatchAppsSettings(object):
         except (InvalidConfigException, IndexError) as exp:
             self.log.warning("Warning failed to load config file, "
                              "creating new default config.")
-
             self.log.warning(str(exp))
-            cfg = Configuration(jobtype='Blender', log_level='warning')
-
+            
         finally:
+
+            if not cfg:
+                cfg = Configuration(jobtype='Blender', log_level='warning')
+
             if self.props.endpoint:
                 cfg = override_config(cfg, endpoint=self.props.endpoint)
             if self.props.account:

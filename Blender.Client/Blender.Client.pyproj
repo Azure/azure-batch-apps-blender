@@ -45,6 +45,9 @@
     <Compile Include="batchapps_blender\props\props_pools.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="dependency_check.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="batchapps_blender\submission.py">
       <SubType>Code</SubType>
     </Compile>
