@@ -40,6 +40,7 @@ from batchapps_blender.props import props_submission
 from batchapps_blender.utils import BatchAppsOps
 
 from batchapps.exceptions import (
+    SessionExpiredException,
     AuthenticationException,
     InvalidConfigException)
 
@@ -340,6 +341,12 @@ class BatchAppsSubmission(object):
             session.log.info("No assets referenced yet. Checking now.")
             bpy.ops.batchapps_assets.refresh()
 
+            if session.page == 'LOGIN':
+                raise SessionExpiredException("AAD token has expired")
+
+            elif session.page == 'ERROR':
+                raise Exception("Failed to set up assets for job")
+
         file_set = self.batchapps_files.create_file_set(assets.collection)
         new_job.add_file_collection(file_set)
 
@@ -355,7 +362,11 @@ class BatchAppsSubmission(object):
             
         else:
             session.log.debug("Using saved blend file {0}".format(assets.path))
-            jobfile = bpy.context.scene.batchapps_assets.get_jobfile()
+            try:
+                jobfile = bpy.context.scene.batchapps_assets.get_jobfile()
+            except ValueError:
+                jobfile = self.batchapps_files.file_from_path(assets.path)
+
             new_job.set_job_file(jobfile)
 
         self.upload_assets(new_job)

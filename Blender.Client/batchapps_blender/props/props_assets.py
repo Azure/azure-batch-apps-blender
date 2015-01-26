@@ -155,7 +155,7 @@ class AssetProps(bpy.types.PropertyGroup):
                 return asset
         else:
             log.debug("Found no job asset, using {0}".format(self.path))
-            return self.path
+            raise ValueError("Job Asset not in collection")
 
     def reset(self):
         """

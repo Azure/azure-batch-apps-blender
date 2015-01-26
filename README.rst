@@ -253,8 +253,8 @@ To run this addon you will need:
 Addon Documentation
 --------------------
 
-The Addon User Guide can be found `here <PENDING_URL>`_.
-Auto generated Sphinx documentation for the Addon code can be found `here <PENDING_URL>`_.
+The Addon User Guide can be found `here <http://dl.windowsazure.com/batchapps/blender/user_guide.html>`_.
+Auto generated Sphinx documentation for the Addon code can be found `here <http://dl.windowsazure.com/batchapps/blender/batchapps_blender.html>`_.
 
 
 

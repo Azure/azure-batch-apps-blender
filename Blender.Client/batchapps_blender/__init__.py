@@ -66,6 +66,7 @@ def start_session(self):
     except Exception as e:
         print("BatchApps Addon failed to load.")
         print ("Error: {0}".format(e))
+        bpy.types.Scene.batchapps_error = e
 
     finally:
         bpy.app.handlers.scene_update_post.remove(start_session)

@@ -128,6 +128,10 @@ class BatchAppsSettings(object):
             
         finally:
 
+            if not os.path.isdir(self.props.data_dir):
+                raise EnvironmentError("Data directory not created - "
+                                       "please ensure you have adequate permissions.")
+
             if not cfg:
                 cfg = Configuration(jobtype='Blender', log_level='warning')
 
@@ -201,7 +205,14 @@ class BatchAppsSettings(object):
         :Returns:
             - :class:`.BatchAppsPreferences`
         """
-        return bpy.context.user_preferences.addons[__package__].preferences
+        props = bpy.context.user_preferences.addons[__package__].preferences
+        if not os.path.isdir(props.data_dir):
+            try:
+                os.mkdir(data_dir)
+            except:
+                raise EnvironmentError("Data directory not created - "
+                                       "please ensure you have adequate permissions.")
+        return props
 
     def _register_ui(self):
         """

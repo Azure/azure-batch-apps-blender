@@ -153,29 +153,29 @@ class Interface(bpy.types.Panel):
         :Args:
             - context (bpy.types.Context): The current Blender runtime context.
         """
-        if not hasattr(context.scene, 'batchapps_session'):
-            return None
+        if hasattr(context.scene, "batchapps_error"):
+            self.load_failed()
+            return
 
-        layout = self.layout
         session = context.scene.batchapps_session
 
         if session.page in session.pages:
-            session.display(self, layout)
+            session.display(self, self.layout)
 
         elif session.page in session.auth.pages:
-            session.auth.display(self, layout)
+            session.auth.display(self, self.layout)
 
         elif session.page in session.submission.pages:
-            session.submission.display(self, layout)
+            session.submission.display(self, self.layout)
 
         elif session.page in session.assets.pages:
-            session.assets.display(self, layout)
+            session.assets.display(self, self.layout)
 
         elif session.page in session.pools.pages:
-            session.pools.display(self, layout)
+            session.pools.display(self, self.layout)
 
         elif session.page in session.history.pages:
-            session.history.display(self, layout)
+            session.history.display(self, self.layout)
         
         else:
             session.log.error("Cant load page: {0}. "
@@ -183,4 +183,15 @@ class Interface(bpy.types.Panel):
 
             session.page = "ERROR"
             session.display(self, layout)
+
+    def load_failed(self):
+        """
+        Display error page if the addon failed to load.
+
+        """
+        sublayout = self.layout.box()
+        self.label("Addon failed to load correctly", sublayout.row(align=True), "CENTER")
+        self.label("Please see console for details.", sublayout.row(align=True), "CENTER")
+
+        self.label("", sublayout)
 

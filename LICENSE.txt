@@ -1,10 +1,9 @@
 
-The Blender Batch Apps Sample ver. 0.1.0
+Batch Apps Blender Addon and C# Cloud Assemblies 
 
-Copyright (c) Microsoft Corporation
-All rights reserved. 
+Copyright (c) Microsoft Corporation.  All rights reserved.
 
-The MIT License (MIT)
+MIT License
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the ""Software""), to deal

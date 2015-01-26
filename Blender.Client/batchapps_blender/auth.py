@@ -230,7 +230,10 @@ class BatchAppsAuth(object):
               completed its action.
         """
         if self.props.credentials:
-            self.props.credentials.clear_auth()
+            try:
+                self.props.credentials.clear_auth()
+            except OSError:
+                pass
 
         self.props.credentials = None
         bpy.context.scene.batchapps_session.page = "LOGIN"

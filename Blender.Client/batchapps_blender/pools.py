@@ -207,7 +207,7 @@ class BatchAppsPools(object):
 
         return bpy.ops.batchapps_pools.page()
 
-    def _create(self, op):
+    def _create(self, op, context):
         """
         The execute method for the pools.create operator.
         Display the UI components to create a new pool by setting the page

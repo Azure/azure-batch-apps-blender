@@ -391,14 +391,20 @@ class BatchAppsAssets(object):
         """
         #TODO: Test relative vs. absolute paths.
         session = bpy.context.scene.batchapps_session
+        temp_dir = bpy.context.user_preferences.filepaths.temporary_directory
 
         if bpy.data.filepath == '' and self.props.temp:
             session.log.debug(
                 "Blend path: Using current temp {0}".format(self.props.path))
-            return self.props.path
+
+            if self.props.path:
+                return self.props.path
+
+            else:
+                
+                return os.path.join(temp_dir, self.name_generator())
 
         elif bpy.data.filepath == '':
-            temp_dir = bpy.context.user_preferences.filepaths.temporary_directory
             temp_path = os.path.join(temp_dir, self.name_generator())
             self.props.temp = True
 

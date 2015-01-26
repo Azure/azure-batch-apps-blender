@@ -37,11 +37,6 @@ VERSION = "0.1.0"
 def main():
     """Build Blender Addon package"""
 
-    python_exe = os.path.join(sys.prefix, "python.exe")
-    if not os.path.exists(python_exe):
-        print("Cannot find python.exe at path: {0}".format(python_exe))
-        return
-
     print("Building package...")
 
     package_dir = os.path.abspath("build")
