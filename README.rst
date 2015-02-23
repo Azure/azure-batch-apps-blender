@@ -19,7 +19,7 @@ License
 ========
 
 This project is licensed under the MIT License.
-For details see LICENSE.txt or visit `<http://opensource.org/licenses/MIT>`_.
+For details see LICENSE.txt or visit `opensource.org/licenses/MIT <http://opensource.org/licenses/MIT>`_.
 
 Blender
 ========
@@ -51,7 +51,7 @@ This project builds a cloud assembly for running rendering jobs using Blender.
 A "cloud assembly" is a zip file containing an application-specific DLL with logic for splitting
 jobs into tasks, and for executing each of those tasks.  In this sample, we split the job into
 a task for each frame to be rendered, and execute each task by running the blender.exe program. 
-The cloud assembly goes hand in hand with an "application image," a zip file 
+The cloud assembly goes hand in hand with an "application image", a zip file 
 containing the program or programs to be executed.  In this sample, we have used Blender and 
 ImageMagick in the application image.
  
@@ -113,7 +113,7 @@ Uploading the Application to Your Batch Apps Service
    portal. Your Batch Apps Service should be displayed, or you can navigate to it using the Services left-hand menu option.
 4. Choose the Manage Applications tab.
 5. Click New Application.
-6. Under "Select and upload a cloud assembly," choose your cloud assembly zip file and click Upload.
+6. Under "Select and upload a cloud assembly", choose your cloud assembly zip file and click Upload.
 7. Under "Select and upload an application image," choose your application image zip file and click Upload.  
    (Be sure to leave the version as "default".)
 8. Click Done.
@@ -142,11 +142,10 @@ There are several approaches one could take:
 	>> blender.exe -b -P dependency_check.py
 
 - If there is already an installation of Python 3.4 on the machine, one can use pip to install the required
-  packages, choosing the Blender bundled Python environment as the target directory for the installation::
+  packages, choosing the Blender bundled Python environment as the target directory for the installation. Note that by
+  installing azure-batch-apps first, all the remaining packages will be installed automatically as dependencies::
 
 	>> pip install --target "Blender Foundation/blender/2.7x/python/lib/site-packages" azure-batch-apps
-
-.. note:: By installing azure-batch-apps first, all the remaining packages will be installed automatically as dependencies.
 
 - Download the packages directly from `pypi.python.org <http://pypi.python.org>`_. Extract their module subfolders and copy them into the 
   Blender bundled Python environment::
