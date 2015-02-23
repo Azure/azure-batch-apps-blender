@@ -29,7 +29,7 @@ It supports the entirety of the 3D pipeline - modeling, rigging, animation, simu
 Advanced users employ Blender's API for Python scripting to customize the application and write specialized tools; often these are included in Blender's future releases. 
 Blender is well suited to individuals and small studios who benefit from its unified pipeline and responsive development process.
 
-For more information and to download Blender, visit `<http://www.blender.org>`_.
+For more information and to download Blender, visit `blender.org <http://www.blender.org>`_.
 
 
 Set up
@@ -79,10 +79,10 @@ The application image contains the following applications:
 
 To build the application image zip file:
 
-1. Open `<http://www.blender.org/download/>`_.
+1. Open `www.blender.org/download <http://www.blender.org/download/>`_.
 2. Locate the 64bit zip download for the latest Blender release. `Direct download of 2.73 here <http://mirror.cs.umn.edu/blender.org/release/Blender2.73/blender-2.73-windows64.zip>`_.
 3. Extract the subfolder (blender-2.7x-windows64) to a location of choice and rename it 'Blender'.
-4. Open `<http://www.imagemagick.org/script/binary-releases.php#windows>`_
+4. Open `www.imagemagick.org/script/binary-releases.php#windows <http://www.imagemagick.org/script/binary-releases.php#windows>`_
 5. Locate and download the portable Win32 static build. It is important to use the portable build!
 6. Extract the subfolder (ImageMagick-6.x.x) next to the earlier 'Blender' directory, and rename it to 'ImageMagick'.
 7. Select both the 'Blender' and 'ImageMagick' directories, right-click and choose Send To > Compressed Folder.
@@ -145,9 +145,10 @@ There are several approaches one could take:
   packages, choosing the Blender bundled Python environment as the target directory for the installation::
 
 	>> pip install --target "Blender Foundation/blender/2.7x/python/lib/site-packages" azure-batch-apps
-::Note:: By installing azure-batch-apps first - all the remaining packages will be installed automatically as dependencies.
 
-- Download the packages directly from `<http://pypi.python.org>`_. Extract their module subfolders and copy them into the 
+.. note:: By installing azure-batch-apps first, all the remaining packages will be installed automatically as dependencies.
+
+- Download the packages directly from `pypi.python.org <http://pypi.python.org>`_. Extract their module subfolders and copy them into the 
   Blender bundled Python environment::
 
 	Destination: ~/Blender Foundation/blender/2.7x/python/lib/site-packages
