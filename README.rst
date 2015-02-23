@@ -10,7 +10,9 @@ The sample involves two parts, the cloud assembly project, and the Blender clien
 For more information on Batch Apps concepts, terms, and project structure `check out this article <http://azure.microsoft.com/en-us/documentation/articles/batch-dotnet-get-started/#tutorial2>`_.
 
 The client project is a Python 'Addon' for Blender, to allow for a seamless user experience for submitting render
-jobs to the cloud from within Blender. 
+jobs to the cloud from within Blender.
+
+The compiled components can be downloaded in the release. 
 
 
 License
@@ -140,12 +142,12 @@ There are several approaches one could take:
 	>> blender.exe -b -P dependency_check.py
 
 - If there is already an installation of Python 3.4 on the machine, one can use pip to install the required
-  packages, then copy them into the Blender bundled Python environment::
+  packages, choosing the Blender bundled Python environment as the target directory for the installation::
 
-	Source: ~/Python34/lib/site-packages
-	Destination: ~/Blender Foundation/blender/2.7x/python/lib/site-packages
+	>> pip install --target "Blender Foundation/blender/2.7x/python/lib/site-packages" azure-batch-apps
+::Note:: By installing azure-batch-apps first - all the remaining packages will be installed automatically as dependencies.
 
-- Download the packages directly from `<pypi.python.org>`_. Extract their module subfolders and copy them into the 
+- Download the packages directly from `<http://pypi.python.org>`_. Extract their module subfolders and copy them into the 
   Blender bundled Python environment::
 
 	Destination: ~/Blender Foundation/blender/2.7x/python/lib/site-packages
