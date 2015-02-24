@@ -206,12 +206,14 @@ class BatchAppsSettings(object):
             - :class:`.BatchAppsPreferences`
         """
         props = bpy.context.user_preferences.addons[__package__].preferences
+        
         if not os.path.isdir(props.data_dir):
             try:
-                os.mkdir(data_dir)
+                os.mkdir(props.data_dir)
             except:
-                raise EnvironmentError("Data directory not created - "
-                                       "please ensure you have adequate permissions.")
+                raise EnvironmentError(
+                    "Data directory not created at {0}.\n"
+                    "Please ensure you have adequate permissions.".format(props.data_dir))
         return props
 
     def _register_ui(self):
