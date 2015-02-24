@@ -212,7 +212,7 @@ class BatchAppsSettings(object):
                 os.mkdir(props.data_dir)
             except:
                 raise EnvironmentError(
-                    "Data directory not created at {0}.\n"
+                    "Data directory not created at '{0}'.\n"
                     "Please ensure you have adequate permissions.".format(props.data_dir))
         return props
 
