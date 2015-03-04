@@ -1,1 +1,2 @@
-v0.1.0, 2014-12-xx	- Beta Release.
+v0.1.1, 2015-03-05	- Bug fix - logging directory failed to create
+v0.1.0, 2015-01-27	- Beta Release.

@@ -29,7 +29,7 @@
 bl_info = {
     "name": "Batch Apps Blender",
     "author": "Microsoft Corp. <bigcompute@microsoft.com>",
-    "version": (0, 1, 0),
+    "version": (0, 1, 1),
     "blender": (2, 7, 2),
     "location": "Render Properties",
     "description": ("Export Blender files to be rendered externally by "
