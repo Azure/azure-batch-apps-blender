@@ -1,4 +1,4 @@
-#-------------------------------------------------------------------------
+﻿#-------------------------------------------------------------------------
 #
 # Batch Apps Blender Addon
 #
@@ -31,50 +31,23 @@ import logging
 import webbrowser
 import os
 
-from batchapps_blender.ui import ui_shared
+from batched_blender.ui import ui_shared
 
-from batchapps_blender.auth import BatchAppsAuth
-from batchapps_blender.submission import BatchAppsSubmission
-from batchapps_blender.assets import BatchAppsAssets
-from batchapps_blender.history import BatchAppsHistory
-from batchapps_blender.pools import BatchAppsPools
-from batchapps_blender.utils import BatchAppsOps
+from batched_blender.auth import BatchAuth
+from batched_blender.submission import BatchSubmission
+from batched_blender.assets import BatchAssets
+from batched_blender.history import BatchHistory
+from batched_blender.pools import BatchPools
+from batched_blender.utils import BatchOps
 
-from batchapps import (
-    JobManager,
-    FileManager,
-    PoolManager,
-    Configuration)
-
-from batchapps.exceptions import InvalidConfigException
+import azure.storage.blob as az_storage
+import azure.batch as az_batch
+from azure.batch.batch_auth import SharedKeyCredentials
 
 
-def override_config(cfg, **kwargs):
-    """
-    Override a particular AAD setting in the config file, if it has been
-    set in the Blender User Preferences.
+_LOG = logging.getLogger('batched_blender')
 
-    :Args:
-        - cfg (:class:`batchapps.Configuration`): The configuration to be
-            updated.
-        
-    :Kwargs:
-        - The auth setting in the config to be changed, with it's updated
-            value.
-
-    :Returns:
-        - The updated config (:class:`batchapps.Configuration`).
-    """
-    try:
-        cfg.aad_config(**kwargs)
-
-    except InvalidConfigException:
-        pass
-
-    finally:
-        return cfg
-
-class BatchAppsSettings(object):
+class BatchSettings(object):
     """
     Initializes and manages the Batch Apps addon session.
     Registers all classes and handles all sub-pages.
@@ -90,18 +63,18 @@ class BatchAppsSettings(object):
         self.ui = self._register_ui()
         self.props = self._register_props()
 
-        self.log = self._configure_logging()
+        self._configure_logging()
         self.cfg = self._configure_addon()
         self.page = "LOGIN"
 
-        self.auth = BatchAppsAuth()
+        self.auth = BatchAuth()
         self.submission = None
         self.history = None
         self.assets = None
         self.pools = None
 
-        if self.auth.auto_authentication(self.cfg, self.log):
-            self.start(self.auth.props.credentials)
+        self.auth.auto_authentication(self.cfg)
+        self.start()
 
     def _configure_addon(self):
         """
@@ -111,75 +84,34 @@ class BatchAppsSettings(object):
         :Returns:
             - A :class:`.batchapps.Configuration` object.
         """
-        cfg = None
-        try:
-            data_dir = os.path.split(self.props.data_dir)
-
-            cfg = Configuration(jobtype='Blender', 
-                                data_path=data_dir[0],
-                                log_level=int(self.props.log_level),
-                                name=self.props.ini_file,
-                                datadir=data_dir[1])
-            
-        except (InvalidConfigException, IndexError) as exp:
-            self.log.warning("Warning failed to load config file, "
-                             "creating new default config.")
-            self.log.warning(str(exp))
-            
-        finally:
-
-            if not os.path.isdir(self.props.data_dir):
-                raise EnvironmentError("Data directory not created - "
-                                       "please ensure you have adequate permissions.")
-
-            if not cfg:
-                cfg = Configuration(jobtype='Blender', log_level='warning')
-
-            if self.props.endpoint:
-                cfg = override_config(cfg, endpoint=self.props.endpoint)
-            if self.props.account:
-                cfg = override_config(cfg, account=self.props.account)
-            if self.props.key:
-                cfg = override_config(cfg, key=self.props.key)
-            if self.props.client_id:
-                cfg = override_config(cfg, client_id=self.props.client_id)
-            if self.props.tenant:
-                cfg = override_config(cfg, tenant=self.props.tenant)
-            if self.props.redirect:
-                cfg = override_config(cfg, redirect=self.props.redirect)
-
-            cfg.save_config()
-            return cfg
+        cfg = {}
+        cfg['account'] =  self.props.account
+        cfg['endpoint'] =  self.props.endpoint
+        cfg['key'] =  self.props.key
+        cfg['storage'] =  self.props.storage
+        cfg['storage_key'] =  self.props.storage_key
+        cfg['storage_container'] =  self.props.storage_container
+        return cfg
 
     def _configure_logging(self):
         """
         Configures the logger for the addon based on the User Preferences.
         Sets up a stream handler to log to Blenders console and a file
-        handler to log to the Batch Apps log file.
-
-        :Returns:
-            - A :class:`batchapps.log.PickleLog` object.
+        handler to log to the Batch log file.
         """
-        logger = logging.getLogger('BatchAppsBlender')
-
+        _LOG.setLevel(int(self.props.log_level))
         console_format = logging.Formatter(
-            "BatchApps: [%(levelname)s] %(message)s")
-
+            "Batch: [%(levelname)s] %(message)s")
         file_format = logging.Formatter(
             "%(asctime)-15s [%(levelname)s] %(module)s: %(message)s")
 
         console_logging = logging.StreamHandler()
         console_logging.setFormatter(console_format)
-        logger.addHandler(console_logging)
-
-        logfile = os.path.join(self.props.data_dir, "batch_apps.log")
-
+        _LOG.addHandler(console_logging)
+        logfile = os.path.join(self.props.log_dir, "batched_blender.log")
         file_logging = logging.FileHandler(logfile)
         file_logging.setFormatter(file_format)
-        logger.addHandler(file_logging)
-
-        logger.setLevel(int(self.props.log_level))
-        return logger
+        _LOG.addHandler(file_logging)
 
     def _register_ops(self):
         """
@@ -206,14 +138,13 @@ class BatchAppsSettings(object):
             - :class:`.BatchAppsPreferences`
         """
         props = bpy.context.user_preferences.addons[__package__].preferences
-        
-        if not os.path.isdir(props.data_dir):
+        if not os.path.isdir(props.log_dir):
             try:
-                os.mkdir(props.data_dir)
+                os.mkdir(props.log_dir)
             except:
                 raise EnvironmentError(
                     "Data directory not created at '{0}'.\n"
-                    "Please ensure you have adequate permissions.".format(props.data_dir))
+                    "Please ensure you have adequate permissions.".format(props.log_dir))
         return props
 
     def _register_ui(self):
@@ -295,21 +226,26 @@ class BatchAppsSettings(object):
             - creds (:class:`batchapps.Credentials`): Authorised credentials
               with which API calls will be made.
         """
-        job_mgr = JobManager(creds, cfg=self.cfg)
-        asset_mgr = FileManager(creds, cfg=self.cfg)
-        pool_mgr = PoolManager(creds, cfg=self.cfg)
+        uploader = az_storage.BlockBlobService(
+            self.cfg['storage'], 
+            self.cfg['storage_key'],
+            endpoint_suffix='core.windows.net')
+        uploader.create_container(self.cfg['storage_container'], fail_on_exist=False)
+        batch_creds = SharedKeyCredentials(self.cfg['account'], self.cfg['key'])
+        batch_config = az_batch.BatchServiceClientConfiguration(batch_creds, base_url=self.cfg['endpoint'])
+        batch = az_batch.BatchServiceClient(batch_config)
 
-        self.submission = BatchAppsSubmission(job_mgr, asset_mgr, pool_mgr)
-        self.log.debug("Initialised submission module")
+        self.submission = BatchSubmission(batch, uploader)
+        _LOG.debug("Initialised submission module")
 
-        self.assets = BatchAppsAssets(asset_mgr)
-        self.log.debug("Initialised assets module")
+        self.assets = BatchAssets(batch, uplaoder)
+        _LOG.debug("Initialised assets module")
 
-        self.history = BatchAppsHistory(job_mgr)
-        self.log.debug("Initialised history module")
+        self.history = BatchHistory(batch)
+        _LOG.debug("Initialised history module")
 
-        self.pools = BatchAppsPools(pool_mgr)
-        self.log.debug("Initialised pool module")
+        self.pools = BatchPools(batch)
+        _LOG.debug("Initialised pool module")
 
         self.page = "HOME"
 

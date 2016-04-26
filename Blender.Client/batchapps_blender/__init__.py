@@ -1,4 +1,4 @@
-#-------------------------------------------------------------------------
+﻿#-------------------------------------------------------------------------
 #
 # Batch Apps Blender Addon
 #
@@ -27,10 +27,10 @@
 #--------------------------------------------------------------------------
 
 bl_info = {
-    "name": "Batch Apps Blender",
+    "name": "Batched Blender",
     "author": "Microsoft Corp. <bigcompute@microsoft.com>",
     "version": (0, 1, 1),
-    "blender": (2, 7, 2),
+    "blender": (2, 7, 7),
     "location": "Render Properties",
     "description": ("Export Blender files to be rendered externally by "
                     "Microsoft Batch Apps."),
@@ -38,12 +38,9 @@ bl_info = {
 
 import bpy
 
-from batchapps import credentials
-from batchapps import config as logging
-
-from batchapps_blender.props.props_shared import BatchAppsPreferences
-from batchapps_blender.shared import BatchAppsSettings
-from batchapps_blender.draw import *
+from batched_blender.props.props_shared import BatchPreferences
+from batched_blender.shared import BatchSettings
+from batched_blender.draw import *
 
 @bpy.app.handlers.persistent
 def start_session(self):
@@ -57,16 +54,16 @@ def start_session(self):
     is removed from the event handlers.
     """
     try:
-        session = BatchAppsSettings()
+        session = BatchSettings()
 
         def get_session(self):
             return session
-        bpy.types.Scene.batchapps_session = property(get_session)
+        bpy.types.Scene.batch_session = property(get_session)
 
     except Exception as e:
-        print("BatchApps Addon failed to load.")
+        print("Batch Addon failed to load.")
         print ("Error: {0}".format(e))
-        bpy.types.Scene.batchapps_error = e
+        bpy.types.Scene.batch_error = e
 
     finally:
         bpy.app.handlers.scene_update_post.remove(start_session)
@@ -75,7 +72,7 @@ def start_session(self):
 def register():
     """
     Register module and applicable classes.
-    This method also sets some BatchApps globals. In particular, the
+    This method also sets some Batch globals. In particular, the
     python module Requests that is packaged with blender does not allow
     for certificates to be verified, so we have to either turn this off,
     or replace the included Requests module (recommended).
@@ -83,12 +80,8 @@ def register():
     Here we also register the User Preferences for the Addon, so it can
     be configured in the Blender User Preferences window.
     """
-    credentials.VERIFY = False
-    logging.STREAM_LOG = False
-
     bpy.app.handlers.scene_update_post.append(start_session)
-
-    bpy.utils.register_class(BatchAppsPreferences)
+    bpy.utils.register_class(BatchPreferences)
     bpy.utils.register_module(__name__)
 
 

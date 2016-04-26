@@ -6,16 +6,13 @@
     <ProjectGuid>16d9e706-0005-4ac4-832c-d0403f6b8008</ProjectGuid>
     <ProjectHome>.</ProjectHome>
     <StartupFile>package.py</StartupFile>
-    <SearchPath>
-    </SearchPath>
+    <SearchPath>..\..\azure-activedirectory-library-for-python\</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>Blender.Client</Name>
     <RootNamespace>Blender.Client</RootNamespace>
-    <InterpreterId>
-    </InterpreterId>
-    <InterpreterVersion>
-    </InterpreterVersion>
+    <InterpreterId>{b941f350-fa62-430e-95ae-05c0233e7631}</InterpreterId>
+    <InterpreterVersion>3.5</InterpreterVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -100,6 +97,19 @@
     <Folder Include="batchapps_blender\" />
     <Folder Include="batchapps_blender\ui\" />
     <Folder Include="batchapps_blender\props\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Interpreter Include="..\..\..\..\Users\antisch\Documents\GitHub\PythonEnv\Python351-64-ENV\">
+      <Id>{b941f350-fa62-430e-95ae-05c0233e7631}</Id>
+      <BaseInterpreter>{9a7a9026-48c1-4688-9d5d-e5699d47d074}</BaseInterpreter>
+      <Version>3.5</Version>
+      <Description>Python351-64-ENV (Python 64-bit 3.5)</Description>
+      <InterpreterPath>Scripts\python.exe</InterpreterPath>
+      <WindowsInterpreterPath>Scripts\pythonw.exe</WindowsInterpreterPath>
+      <LibraryPath>Lib\</LibraryPath>
+      <PathEnvironmentVariable>PYTHONPATH</PathEnvironmentVariable>
+      <Architecture>Amd64</Architecture>
+    </Interpreter>
   </ItemGroup>
   <Import Condition="Exists($(PtvsTargetsFile))" Project="$(PtvsTargetsFile)" />
   <Import Condition="!Exists($(PtvsTargetsFile))" Project="$(MSBuildToolsPath)\Microsoft.Common.targets" />

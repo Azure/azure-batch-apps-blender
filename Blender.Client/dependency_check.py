@@ -1,4 +1,4 @@
-#-------------------------------------------------------------------------
+﻿#-------------------------------------------------------------------------
 #
 # Batch Apps Blender Addon
 #
@@ -63,7 +63,7 @@ LIBS = [
     {"lib":"oauthlib",          "ver":"0.7.2",  "mod":"oauthlib",           "ext":"tar.gz"},
     {"lib":"requests-oauthlib", "ver":"0.4.2",  "mod":"requests_oauthlib",  "ext":"tar.gz"},
     {"lib":"keyring",           "ver":"4.0",    "mod":"keyring",            "ext":"zip"},
-    {"lib":"azure-batch-apps",  "ver":"0.3.0",  "mod":"batchapps",          "ext":"tar.gz"}
+    {"lib":"azure-batch",       "ver":"0.3.0",  "mod":"batch",              "ext":"tar.gz"}
     ]
 
 def unpack_tar(lib_full, lib_dir, lib_module):

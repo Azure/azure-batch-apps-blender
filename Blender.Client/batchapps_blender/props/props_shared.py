@@ -1,4 +1,4 @@
-#-------------------------------------------------------------------------
+﻿#-------------------------------------------------------------------------
 #
 # Batch Apps Blender Addon
 #
@@ -30,22 +30,16 @@ import bpy
 import os
 
 
-class BatchAppsPreferences(bpy.types.AddonPreferences):
-    """BatchApps Blender addon user preferences."""
+class BatchPreferences(bpy.types.AddonPreferences):
+    """Batch Blender addon user preferences."""
 
     bl_idname = __package__.split('.')[0]
 
-    ini_file = bpy.props.StringProperty(
-            name="Configuration file",
-            description="BatchApps config file",
-            subtype='FILE_NAME',
-            default="batch_apps.ini")
-
-    data_dir = bpy.props.StringProperty(
-            name="Data directory",
-            description="Location of config file and log file",
+    log_dir = bpy.props.StringProperty(
+            name="Log directory",
+            description="Location of log file",
             subtype='DIR_PATH',
-            default=os.path.join(os.path.expanduser('~'), 'BatchAppsData'))
+            default=os.path.expanduser('~'))
 
     log_level = bpy.props.EnumProperty(items=(('10', 'Debug', ''),
                                               ('20', 'Info', ''),
@@ -57,34 +51,34 @@ class BatchAppsPreferences(bpy.types.AddonPreferences):
                                        default="30")
 
     account = bpy.props.StringProperty(
-        name="Unattended Account",
-        description="Batch Apps Unattended Account",
+        name="Batch Account",
+        description="Batch account name.",
         default="")
 
     key = bpy.props.StringProperty(
-        name="Unattended Key",
-        description="Batch Apps Unattended Account key",
+        name="Batch Account Key",
+        description="Batch account key.",
         default="")
 
     endpoint = bpy.props.StringProperty(
-        name="Service URL",
-        description="Batch Apps service endpoint",
+        name="Batch Account URL",
+        description="Batch service endpoint.",
         default="")
 
-    client_id = bpy.props.StringProperty(
-        name="Client ID",
-        description="AAD Client ID",
+    storage = bpy.props.StringProperty(
+        name="Storage Account",
+        description="Azure Storage account name where assets will be uploaded to.",
         default="")
 
-    tenant = bpy.props.StringProperty(
-        name="Tenant",
-        description="AAD auth tenant",
+    storage_key = bpy.props.StringProperty(
+        name="Storage Account Key",
+        description="Azure Storage account key.",
         default="")
 
-    redirect = bpy.props.StringProperty(
-        name="Redirect URI",
-        description="AAD auth redirect URI",
-        default="")
+    storage_container = bpy.props.StringProperty(
+        name="Storage Container",
+        description="Name of container in storage where assets will be uploaded.",
+        default="batched-blender-assets")
 
     def draw(self, context):
         """
@@ -100,17 +94,19 @@ class BatchAppsPreferences(bpy.types.AddonPreferences):
         layout.label(text="Blender will need to be restarted "
                      "for changes to take effect.")
 
-        layout.prop(self, "data_dir")
-        layout.prop(self, "ini_file")
+        layout.prop(self, "log_dir")
         layout.prop(self, "log_level")
 
         layout.label(text="")
-        layout.label(text="Service Authentication configuration. "
-                     "These settings will override those in the config file.")
+        layout.label(text="Service Authentication Configuration")
 
         layout.prop(self, "endpoint")
         layout.prop(self, "account")
         layout.prop(self, "key")
-        layout.prop(self, "client_id")
-        layout.prop(self, "tenant")
-        layout.prop(self, "redirect")
+
+        layout.label(text="")
+        layout.label(text="Storage Configuration")
+
+        layout.prop(self, "storage")
+        layout.prop(self, "storage_key")
+        layout.prop(self, "storage_container")

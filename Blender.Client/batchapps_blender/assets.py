@@ -1,4 +1,4 @@
-#-------------------------------------------------------------------------
+﻿#-------------------------------------------------------------------------
 #
 # Batch Apps Blender Addon
 #
@@ -26,20 +26,27 @@
 #
 #--------------------------------------------------------------------------
 
-import bpy
+
 import logging
-import tempfile
 import os
+import random
 import re
 import string
-import random
+import tempfile
 
-from batchapps_blender.ui import ui_assets
-from batchapps_blender.props import props_assets
-from batchapps_blender.utils import BatchAppsOps
+import bpy
+
+from batched_blender.ui import ui_assets
+from batched_blender.props import props_assets
+from batched_blender.utils import BatchOps
+
+import azure.storage.blob as az_storage
 
 
-class BatchAppsAssets(object):
+_LOG = logging.getLogger(__name__)
+
+
+class BatchAssets(object):
     """
     Manager for all external file handling and displaying of assets.
     """
@@ -48,10 +55,11 @@ class BatchAppsAssets(object):
 
     def __init__(self, manager):
 
-        self.batchapps = manager
+        self.batch = manager
         self.ops = self._register_ops()
         self.props = self._register_props()
         self.ui = self._register_ui()
+        self.uploader = az_storage.BlockBlobService(AZURE_STORAGE_ACCOUNT, keys.key1, endpoint_suffix='')
 
     def display(self, ui, layout):
         """
@@ -68,12 +76,12 @@ class BatchAppsAssets(object):
         :Returns:
             - Runs the display function for the applicable page.
         """
-        return self.ui[bpy.context.scene.batchapps_session.page](ui, layout)
+        return self.ui[bpy.context.scene.batch_session.page](ui, layout)
 
     def _register_props(self):
         """
         Registers and retrieves the asset property objects.
-        These properties are assigned to the scene.batchapps_assets context.
+        These properties are assigned to the scene.batch_assets context.
 
         It also resets the current job filepath, to prevent this being
         persisted between different Blender scenes.
@@ -88,25 +96,25 @@ class BatchAppsAssets(object):
 
     def _register_ops(self):
         """
-        Registers each asset operator with a batchapps_assets prefix.
+        Registers each asset operator with a batch_assets prefix.
 
         :Returns:
             - A list of the names (str) of the registered asset operators.
         """
         ops = []
-        ops.append(BatchAppsOps.register("assets.page",
+        ops.append(BatchOps.register("assets.page",
                                          "Scene assets",
                                          self._assets))
-        ops.append(BatchAppsOps.register("assets.refresh",
+        ops.append(BatchOps.register("assets.refresh",
                                          "Refresh assets",
                                          self._refresh))
-        ops.append(BatchAppsOps.register("assets.upload",
+        ops.append(BatchOps.register("assets.upload",
                                          "Upload selected assets",
                                          self._upload))
-        ops.append(BatchAppsOps.register("assets.remove",
+        ops.append(BatchOps.register("assets.remove",
                                          "Remove asset",
                                          invoke=self._remove))
-        ops.append(BatchAppsOps.register("assets.add", "Add asset",
+        ops.append(BatchOps.register("assets.add", "Add asset",
                                          self._add_execute,
                                          invoke=self._add_invoke,
                                          filepath=bpy.props.StringProperty(
@@ -146,9 +154,9 @@ class BatchAppsAssets(object):
             - Blender-specific value {'FINISHED'} to indicate the operator has
               completed its action.
         """
-        session = context.scene.batchapps_session
+        session = context.scene.batch_session
         session.page = "ASSETS"
-        self.props = context.scene.batchapps_assets
+        self.props = context.scene.batch_assets
 
         new_path = self.get_jobpath()
 
@@ -184,8 +192,8 @@ class BatchAppsAssets(object):
             - Blender-specific value {'FINISHED'} to indicate the operator has
               completed its action.
         """
-        session = context.scene.batchapps_session
-        self.props = context.scene.batchapps_assets
+        session = context.scene.batch_session
+        self.props = context.scene.batch_assets
         new_path = self.get_jobpath()
 
         if new_path != self.props.path:
@@ -206,7 +214,7 @@ class BatchAppsAssets(object):
         If one asset fails to upload, the operator will continue to
         attempt to upload the remaining. 
         Any other error that occurs will be raised to be handled by
-        :func:`.BatchAppsOps.session`.
+        :func:`.BatchOps.session`.
        
         :Args:
             - op (:class:`bpy.types.Operator`): An instance of the current
@@ -218,20 +226,20 @@ class BatchAppsAssets(object):
             - Blender-specific value {'FINISHED'} to indicate the operator has
               completed its action.
         """
-        session = context.scene.batchapps_session
+        session = context.scene.batch_session
         upload = self.pending_upload()
 
-        session.log.info("{0} assets to be uploaded".format(len(upload)))
+        _LOG.info("{0} assets to be uploaded".format(len(upload)))
 
         for index in upload:
             asset = self.props.collection[index]
             display = self.props.assets[index]
 
             try:
-                session.log.debug("Uploading {0}".format(asset.name))
+                _LOG.debug("Uploading {0}".format(asset.name))
                 asset.upload(force=True)
                 display.upload_check = True
-                session.log.debug("Upload complete")
+                _LOG.debug("Upload complete")
                 
             except Exception as exp:
                 print('Failed to upload: {0}'.format(exp))
@@ -257,10 +265,10 @@ class BatchAppsAssets(object):
             - Blender-specific value {'FINISHED'} to indicate the operator has
               completed its action.
         """
-        session = context.scene.batchapps_session
+        session = context.scene.batch_session
         session.log.debug("Selected file {0}".format(op.filepath))
 
-        user_file = self.batchapps.file_from_path(op.filepath)
+        user_file = self.batch.file_from_path(op.filepath)
         if user_file and user_file not in self.props.collection:
             self.props.add_asset(user_file)
 
@@ -330,7 +338,7 @@ class BatchAppsAssets(object):
         """
         asset_list = []
 
-        bpy.context.scene.batchapps_session.log.info(
+        bpy.context.scene.batch_session.log.info(
             "Collecting external assets.")
 
         for s in bpy.data.sounds:
@@ -357,7 +365,7 @@ class BatchAppsAssets(object):
             new_path = os.path.realpath(bpy.path.abspath(l.filepath))
             asset_list.append(os.path.normpath(new_path))
 
-        bpy.context.scene.batchapps_session.log.info(
+        bpy.context.scene.batch_session.log.info(
             "Found %d asset files." % (len(asset_list)))
 
         return asset_list
@@ -372,10 +380,10 @@ class BatchAppsAssets(object):
               selected. Default is '0123456789abcdefABCDEF'
 
         :Returns:
-            - A file name (str) with the prefix ``BATCHAPPSTMP_`` and
+            - A file name (str) with the prefix ``BATCHTMP_`` and
               suffix ".blend".
         """
-        return "BATCHAPPSTMP_"+''.join(random.choice(chars) for x in range(size))+".blend"
+        return "BATCHTMP_"+''.join(random.choice(chars) for x in range(size))+".blend"
 
     def get_jobpath(self):
         """
@@ -390,32 +398,31 @@ class BatchAppsAssets(object):
             - The file path (str) to the .blend file.
         """
         #TODO: Test relative vs. absolute paths.
-        session = bpy.context.scene.batchapps_session
+        session = bpy.context.scene.batch_session
         temp_dir = bpy.context.user_preferences.filepaths.temporary_directory
 
         if bpy.data.filepath == '' and self.props.temp:
-            session.log.debug(
+            _LOG.debug(
                 "Blend path: Using current temp {0}".format(self.props.path))
 
             if self.props.path:
                 return self.props.path
 
             else:
-                
                 return os.path.join(temp_dir, self.name_generator())
 
         elif bpy.data.filepath == '':
             temp_path = os.path.join(temp_dir, self.name_generator())
             self.props.temp = True
 
-            session.log.debug(
+            _LOG.debug(
                 "Blend path: Using new temp {0}".format(temp_path))
             return temp_path
 
         else:
             self.props.temp = False
 
-            session.log.debug(
+            _LOG.debug(
                 "Blend path: Using saved {0}".format(bpy.data.filepath))
             return bpy.data.filepath
 

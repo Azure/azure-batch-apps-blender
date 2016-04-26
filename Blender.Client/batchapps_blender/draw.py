@@ -1,4 +1,4 @@
-#-------------------------------------------------------------------------
+﻿#-------------------------------------------------------------------------
 #
 # Batch Apps Blender Addon
 #
@@ -26,19 +26,22 @@
 #
 #--------------------------------------------------------------------------
 
+import logging
+
 import bpy
 
-from batchapps.exceptions import SessionExpiredException
+
+_LOG = logging.getLogger(__name__)
 
 
 class Interface(bpy.types.Panel):
     """
-    Global Batch Apps Blender Interface. Handles the separate UI
+    Global Batch Blender Interface. Handles the separate UI
     definitions of all the submodules based on the session page.
     Also provides custom functions for display props, ops and labels.
     """
 
-    bl_label = "BatchApps Rendering"
+    bl_label = "Azure Batch Rendering"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "render"
@@ -139,7 +142,7 @@ class Interface(bpy.types.Panel):
         if align:
             row.alignment = align
 
-        row.operator("batchapps_" + op, text=label, icon=icon)
+        row.operator("batch_" + op, text=label, icon=icon)
         row.enabled = active
 
     def draw(self, context):
@@ -153,11 +156,11 @@ class Interface(bpy.types.Panel):
         :Args:
             - context (bpy.types.Context): The current Blender runtime context.
         """
-        if hasattr(context.scene, "batchapps_error"):
+        if hasattr(context.scene, "batch_error"):
             self.load_failed()
             return
 
-        session = context.scene.batchapps_session
+        session = context.scene.batch_session
 
         if session.page in session.pages:
             session.display(self, self.layout)
@@ -178,8 +181,8 @@ class Interface(bpy.types.Panel):
             session.history.display(self, self.layout)
         
         else:
-            session.log.error("Cant load page: {0}. "
-                              "No definition found.".format(session.page))
+            _LOG.error("Cant load page: {0}. "
+                       "No definition found.".format(session.page))
 
             session.page = "ERROR"
             session.display(self, layout)

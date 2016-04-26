@@ -1,4 +1,4 @@
-#-------------------------------------------------------------------------
+﻿#-------------------------------------------------------------------------
 #
 # Batch Apps Blender Addon
 #
@@ -26,17 +26,14 @@
 #
 #--------------------------------------------------------------------------
 
+import logging
+import sys
+
 import bpy
 
-from http.server import BaseHTTPRequestHandler
-from urllib.parse import unquote
+_LOG = logging.getLogger(__name__)
 
-import sys
-import socket
-
-from batchapps.exceptions import SessionExpiredException
-
-class BatchAppsOps(object):
+class BatchOps(object):
     """
     Static class for registering operators and executing them in a
     error-safe way.
@@ -58,13 +55,13 @@ class BatchAppsOps(object):
             - If a :class:`batchapps.exceptions.SessionExpiredException` is
               raised, returns {'CANCELLED'}.
         """
-        session = bpy.context.scene.batchapps_session
+        session = bpy.context.scene.batch_session
 
         try:
             return func(*args, **kwargs)
 
-        except SessionExpiredException:
-            session.log.error(
+        except Exception: #TODO: Specify exceptopn
+            _LOG.error(
                 "Warning: Session Expired - please log back in again.")
 
             session.page = "LOGIN"
@@ -73,7 +70,7 @@ class BatchAppsOps(object):
 
         except Exception as exp:
             session.page = "ERROR"
-            session.log.error("Error occurred: {0}".format(exp))
+            _LOG.error("Error occurred: {0}".format(exp))
             session.redraw()
             return {'CANCELLED'}
 
@@ -120,7 +117,7 @@ class BatchAppsOps(object):
 
         op_spec.update(kwargs)
 
-        new_op = type("BatchAppsOp",
+        new_op = type("BatchOp",
                       (bpy.types.Operator, ),
                       op_spec)
 
@@ -156,53 +153,5 @@ class BatchAppsOps(object):
             self.enabled = not self.enabled
             return {'FINISHED'}
 
-        return BatchAppsOps.register(name, label, op_execute, modal,
+        return BatchOps.register(name, label, op_execute, modal,
                                      invoke, **kwargs)
-
-class OAuthRequestHandler(BaseHTTPRequestHandler):
-    """
-    A custom HTTP server request handler to handler the AAD redirects
-    for authentication.
-    """
-
-    def log_message(self, format, *args):
-        """
-        Override logging to silence messages from base class.
-        """
-        return
-
-    def do_GET(s):
-        """
-        Handle a GET request from the AAD server. If a code is returned,
-        assigns to the batchapps_auth.code property and returns status 200
-        along with a simple HTML message.
-        If an error is returned, assigns to properties for logging the
-        returns status 401 and an HTML message.
-        """
-        session = bpy.context.scene.batchapps_session
-        session.log.debug("Received AAD request {0}".format(s.path))
-
-        if s.path.startswith('/?code'):
-            bpy.context.scene.batchapps_auth.code = s.path
-
-            s.send_response(200)
-            s.send_header("Content-type", "text/html")
-            s.end_headers()
-
-            s.wfile.write(b"<html><head><title>Authentication Successful</title></head>")
-            s.wfile.write(b"<body><p>Authentication successful.</p>")
-            s.wfile.write(b"<p>You can now return to Blender where your log in</p>")
-            s.wfile.write(b"<p>will be complete in just a moment.</p>")
-            s.wfile.write(b"</body></html>")
-
-        else:
-            bpy.context.scene.batchapps_auth.code = s.path
-
-            s.send_response(401)
-            s.send_header("Content-type", "text/html")
-            s.end_headers()
-
-            s.wfile.write(b"<html><head><title>Authentication Failed</title></head>")
-            s.wfile.write(b"<body><p>Authentication unsuccessful.</p>")
-            s.wfile.write(b"<p>Check the Blender console for details.</p>")
-            s.wfile.write(b"</body></html>")

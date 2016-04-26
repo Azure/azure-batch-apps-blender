@@ -1,4 +1,4 @@
-#-------------------------------------------------------------------------
+﻿#-------------------------------------------------------------------------
 #
 # Batch Apps Blender Addon
 #
@@ -26,31 +26,19 @@
 #
 #--------------------------------------------------------------------------
 
-import bpy
-
-import webbrowser
 import logging
 import threading
 
-from http.server import HTTPServer
-from urllib.parse import unquote
+import bpy
 
-from batchapps_blender.utils import (
-    BatchAppsOps,
-    OAuthRequestHandler)
-
-from batchapps_blender.ui import ui_auth
-from batchapps_blender.props import props_auth
-
-from batchapps import AzureOAuth
-from batchapps.exceptions import (
-    AuthenticationException,
-    InvalidConfigException)
+from batched_blender.utils import BatchOps
+from batched_blender.ui import ui_auth
+from batched_blender.props import props_auth
 
 
 TIMEOUT = 60 # 1 minute
 
-class BatchAppsAuth(object):
+class BatchAuth(object):
     """
     Managers authentication of the session for the BatchApps Blender Addon.
     Will attempt to sign in automatically based on data available in the
@@ -213,35 +201,6 @@ class BatchAppsAuth(object):
 
         return {'FINISHED'}
 
-    def _logout(self, op, context, *args):
-        """
-        The execute method for the auth.logout operator.
-        Clears any cached credentials and resets the session page back to the
-        Login screen.
-
-        :Args:
-            - op (:class:`bpy.types.Operator`): An instance of the current
-              operator class.
-            - context (:class:`bpy.types.Context`): The current blender
-              context.
-
-        :Returns:
-            - Blender-specific value {'FINISHED'} to indicate the operator has
-              completed its action.
-        """
-        if self.props.credentials:
-            try:
-                self.props.credentials.clear_auth()
-            except OSError:
-                pass
-
-        self.props.credentials = None
-        bpy.context.scene.batchapps_session.page = "LOGIN"
-        bpy.context.scene.batchapps_session.log.info(
-            "Logged out. Cached sessions cleared.")
-
-        return {'FINISHED'}
-
     def auto_authentication(self, cfg, log):
         """
         Attempts to authenticate automatically by first searching the Batch Apps
@@ -264,7 +223,7 @@ class BatchAppsAuth(object):
             log.info("Found!")
             return True
 
-        except (AuthenticationException, InvalidConfigException) as exp:
+        except Exception as exp: #TODO: Get specific exceptions
             log.info("Could not get unattended session: {0}".format(exp))
 
         try:
@@ -273,88 +232,11 @@ class BatchAppsAuth(object):
             log.info("Found!")
             return True
 
-        except (AuthenticationException, InvalidConfigException) as exp:
+        except Exception as exp: #TODO: Get specific exceptions
             log.info("Could not get cached session: {0}".format(exp))
             return False
             
-    def wait_for_request(self):
-        """
-        Once the user has been prompted to authenticate in a web browser
-        session, start a basic HTTPServer to intercept the AAD redirect call
-        to collect the server response to the auth request.
-
-        The localhost redirect URL will depend on how the client is set up in
-        the AAD portal.
-
-        The server has a timeout of 1 minute.
-        """
-        session = bpy.context.scene.batchapps_session
-        self.props.code=None
-
-        config = bpy.context.scene.batchapps_session.cfg
-
-        redirect = config.aad_config()['redirect_uri'].split(':')
-        server_address = (redirect[0], int(redirect[1]))
-
-        web_server = HTTPServer(server_address, OAuthRequestHandler)
-        session.log.debug("Created web server listening at: {0}, {1}.".format(
-            redirect[0], int(redirect[1])))
-
-        web_server.timeout = TIMEOUT
-        web_server.handle_request()
-        web_server.server_close()
-        session.log.debug("Closed server.")
-
-    def open_websession(self):
-        """
-        Open a web browser session to prompt the user to authenticate via their
-        AAD credentials.
-        This method of authentication is the 'last resort' after
-        auto-authentication and unattended authentication have failed.
-
-        :Raises:
-            - :class:`RuntimeError` if authentication fails, which will fail
-              the loading of the addon as all auth routes have failed. This
-              could be due to either an 
-              :class:`batchapps.exceptions.AuthenticationException` of a
-              :class:`batchapps.exceptions.InvalidConfigException`.
-        """
-        session = bpy.context.scene.batchapps_session
-
-        try:
-            url, state = AzureOAuth.get_authorization_url(config=session.cfg)
-            webbrowser.open(url)
-
-            session.log.info("Opened web browser for authentication "
-                             "and waiting for response.")
-
-            self.wait_for_request()
-
-        except (AuthenticationException, InvalidConfigException) as exp:
-            session.log.error("Unable to open Web UI auth session: "
-                              "{0}".format(exp))
-
-            raise RuntimeError("Failed to authorize addon")
-
-    def decode_error(self, val):
-        """
-        Format the auth redirect URL to extract the auth code.
-
-        :Args:
-            - val (str): The redirect URL.
-
-        :Returns:
-            - The auth code (str).
-        """
-        error_idx = self.props.code.find(val)
-        if error_idx < 0:
-            return None
-
-        strt_idx = error_idx + len(val)
-        end_idx = self.props.code.find('&', strt_idx)
-        error_val = self.props.code[strt_idx:end_idx]
-
-        return unquote(error_val)
+    
 
     def web_authentication(self):
         """
@@ -369,38 +251,13 @@ class BatchAppsAuth(object):
         be display. Error details will be logged to the console.
 
         """
-        session = bpy.context.scene.batchapps_session
+        session = bpy.context.scene.batch_session
 
         if self.auto_authentication(session.cfg, session.log):
             session.start(self.props.credentials)
             session.page = "HOME"
-            session.redraw()
-            return
-
-        self.open_websession()
-
-        if not self.props.code:
-            session.log.warning("Log in timed out - please try again.")
-            session.page = "LOGIN"
-
-        elif '/?error=' in self.props.code:
-            error = self.decode_error('/?error=')
-            details = self.decode_error(
-                '&error_description=').replace('+', ' ')
-
-            session.log.error("Authentication failed: {0}".format(error))
-            session.log.error(details)
-            session.page = "ERROR"
-
         else:
-            session.log.info(
-                "Received valid authentication response from web browser.")
-            session.log.info("Now retrieving new authentication token...")
-
-            self.props.credentials = AzureOAuth.get_authorization_token(
-                self.props.code, config=session.cfg)
-
-            session.start(self.props.credentials)
-            session.log.info("Successful! Login complete.")
-        
+            _LOG.error("Authentication failed: {0}".format(error))
+            _LOG.error(details)
+            session.page = "ERROR"
         session.redraw()
