@@ -1,4 +1,4 @@
-#-------------------------------------------------------------------------
+﻿#-------------------------------------------------------------------------
 #
 # Batch Apps Blender Addon
 #
@@ -46,7 +46,6 @@ def home(ui, layout):
     ui.operator("assets.page", "Assets", col)
     ui.operator("pools.page", "Batch Apps Pools", col)
     ui.operator("shared.management_portal", "Management Portal", col)
-    ui.operator("auth.logout", "Logout", col)
     ui.label("", layout)
 
 def error(ui, layout):
@@ -64,11 +63,6 @@ def error(ui, layout):
     sublayout = layout.box()
     ui.label("An error occurred", sublayout.row(align=True), "CENTER")
     ui.label("Please see console for details.", sublayout.row(align=True), "CENTER")
-
-    if bpy.context.scene.batchapps_auth.credentials:
-        ui.operator("shared.home", "Return Home", sublayout)
-
-    else:
-        ui.operator("auth.logout", "Return to Login", sublayout)
+    ui.operator("shared.home", "Return Home", sublayout)
 
     ui.label("", sublayout)

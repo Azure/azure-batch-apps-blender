@@ -32,8 +32,6 @@ import webbrowser
 import os
 
 from batched_blender.ui import ui_shared
-
-from batched_blender.auth import BatchAuth
 from batched_blender.submission import BatchSubmission
 from batched_blender.assets import BatchAssets
 from batched_blender.history import BatchHistory
@@ -44,8 +42,6 @@ import azure.storage.blob as az_storage
 import azure.batch as az_batch
 from azure.batch.batch_auth import SharedKeyCredentials
 
-
-_LOG = logging.getLogger('batched_blender')
 
 class BatchSettings(object):
     """
@@ -63,26 +59,21 @@ class BatchSettings(object):
         self.ui = self._register_ui()
         self.props = self._register_props()
 
-        self._configure_logging()
+        self.log = self._configure_logging()
         self.cfg = self._configure_addon()
         self.page = "LOGIN"
 
-        self.auth = BatchAuth()
         self.submission = None
         self.history = None
         self.assets = None
         self.pools = None
 
-        self.auth.auto_authentication(self.cfg)
         self.start()
 
     def _configure_addon(self):
         """
         Configures the addon based on the current User Preferences
         and the supplied Batch Apps ini file configuration.
-
-        :Returns:
-            - A :class:`.batchapps.Configuration` object.
         """
         cfg = {}
         cfg['account'] =  self.props.account
@@ -99,7 +90,8 @@ class BatchSettings(object):
         Sets up a stream handler to log to Blenders console and a file
         handler to log to the Batch log file.
         """
-        _LOG.setLevel(int(self.props.log_level))
+        logger = logging.getLogger('batched_blender')
+        logger.setLevel(int(self.props.log_level))
         console_format = logging.Formatter(
             "Batch: [%(levelname)s] %(message)s")
         file_format = logging.Formatter(
@@ -107,24 +99,25 @@ class BatchSettings(object):
 
         console_logging = logging.StreamHandler()
         console_logging.setFormatter(console_format)
-        _LOG.addHandler(console_logging)
+        logger.addHandler(console_logging)
         logfile = os.path.join(self.props.log_dir, "batched_blender.log")
         file_logging = logging.FileHandler(logfile)
         file_logging.setFormatter(file_format)
-        _LOG.addHandler(file_logging)
+        logger.addHandler(file_logging)
+        return logger
 
     def _register_ops(self):
         """
-        Registers the shared operators with a batchapps_shared prefix.
+        Registers the shared operators with a batch_shared prefix.
 
         :Returns:
             - A list of the names (str) of the registered operators.
         """
         ops = []
-        ops.append(BatchAppsOps.register("shared.home",
+        ops.append(BatchOps.register("shared.home",
                                          "Home",
                                          self._home))
-        ops.append(BatchAppsOps.register("shared.management_portal",
+        ops.append(BatchOps.register("shared.management_portal",
                                          "Management Portal",
                                          self._management_portal))
         return ops
@@ -135,7 +128,7 @@ class BatchSettings(object):
         Preferences.
 
         :Returns:
-            - :class:`.BatchAppsPreferences`
+            - :class:`.BatchPreferences`
         """
         props = bpy.context.user_preferences.addons[__package__].preferences
         if not os.path.isdir(props.log_dir):
@@ -196,7 +189,7 @@ class BatchSettings(object):
             - Blender-specific value {'FINISHED'} to indicate the operator has
               completed its action.
         """
-        webbrowser.open("https://manage.batchapps.windows.net", 2, True)
+        webbrowser.open("TODO", 2, True)
         return {'FINISHED'}
 
     def display(self, ui, layout):
@@ -216,15 +209,11 @@ class BatchSettings(object):
         """
         return self.ui[self.page](ui, layout)
 
-    def start(self, creds):
+    def start(self):
         """
         Initialize all the addon subpages after authentication is
         complete.
         Sets page to HOME.
-
-        :Args:
-            - creds (:class:`batchapps.Credentials`): Authorised credentials
-              with which API calls will be made.
         """
         uploader = az_storage.BlockBlobService(
             self.cfg['storage'], 
@@ -236,16 +225,16 @@ class BatchSettings(object):
         batch = az_batch.BatchServiceClient(batch_config)
 
         self.submission = BatchSubmission(batch, uploader)
-        _LOG.debug("Initialised submission module")
+        self.log.debug("Initialised submission module")
 
-        self.assets = BatchAssets(batch, uplaoder)
-        _LOG.debug("Initialised assets module")
+        self.assets = BatchAssets(batch, uploader)
+        self.log.debug("Initialised assets module")
 
         self.history = BatchHistory(batch)
-        _LOG.debug("Initialised history module")
+        self.log.debug("Initialised history module")
 
         self.pools = BatchPools(batch)
-        _LOG.debug("Initialised pool module")
+        self.log.debug("Initialised pool module")
 
         self.page = "HOME"
 

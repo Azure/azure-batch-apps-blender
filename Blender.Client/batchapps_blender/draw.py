@@ -26,12 +26,7 @@
 #
 #--------------------------------------------------------------------------
 
-import logging
-
 import bpy
-
-
-_LOG = logging.getLogger(__name__)
 
 
 class Interface(bpy.types.Panel):
@@ -165,9 +160,6 @@ class Interface(bpy.types.Panel):
         if session.page in session.pages:
             session.display(self, self.layout)
 
-        elif session.page in session.auth.pages:
-            session.auth.display(self, self.layout)
-
         elif session.page in session.submission.pages:
             session.submission.display(self, self.layout)
 
@@ -181,11 +173,11 @@ class Interface(bpy.types.Panel):
             session.history.display(self, self.layout)
         
         else:
-            _LOG.error("Cant load page: {0}. "
+            session.log.error("Cant load page: {0}. "
                        "No definition found.".format(session.page))
 
             session.page = "ERROR"
-            session.display(self, layout)
+            session.display(self, self.layout)
 
     def load_failed(self):
         """

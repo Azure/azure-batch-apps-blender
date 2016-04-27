@@ -195,7 +195,7 @@ The Blender site-packages folder should look like this when complete::
 Building and Installing the Addon
 ----------------------------------
 
-To package up the addon, zip up the Blender.Client/batchapps_blender directory.
+To package up the addon, zip up the Blender.Client/batched_blender directory.
 Alternatively set Blender.Client as the start-up project and run the solution. This will zip up the addon into Blender.Client/build
 
 To install the Addon:
@@ -215,7 +215,7 @@ Addon Logging and Configuration
 --------------------------------
 
 The sample addon logs to both Blender's stdout and to file.
-By default this log file will be saved to $HOME/BatchAppsData. This directory is also the location of the Addon
+By default this log file will be saved to $HOME/BatchData. This directory is also the location of the Addon
 configuration file.
 
 This directory, the config file to use, and the level of logging detail are all configurable within the Blender UI.

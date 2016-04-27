@@ -1,4 +1,4 @@
-#-------------------------------------------------------------------------
+﻿#-------------------------------------------------------------------------
 #
 # Batch Apps Blender Addon
 #
@@ -33,7 +33,7 @@ def format_date(job):
     Format a job submitted date for the UI.
 
     :Args:
-        - jon (:class:`batchapps.job.SubmittedJob`): Job whos date we want to
+        - jon (:class:`batch.job.SubmittedJob`): Job whos date we want to
           format.
 
     :Returns:
@@ -46,7 +46,7 @@ def format_date(job):
         return ' '.join(datelist)
 
     except:
-        bpy.context.scene.batchapps_session.log.debug(
+        bpy.context.scene.batch_session.log.debug(
             "Couldn't format date {0}.".format(job.time_submitted))
         return ""
 
@@ -130,7 +130,7 @@ class HistoryDisplayProps(bpy.types.PropertyGroup):
         Add a job to the job display list.
 
         """
-        log = bpy.context.scene.batchapps_session.log
+        log = bpy.context.scene.batch_session.log
         log.debug("Adding job to ui list {0}".format(job.id))
 
         self.jobs.add()
@@ -150,7 +150,7 @@ class HistoryDisplayProps(bpy.types.PropertyGroup):
 class HistoryProps(object):
     """
     History properties.
-    Once instantiated, this class is assigned to assets.BatchAppsAssets.props
+    Once instantiated, this class is assigned to assets.BatchAssets.props
     but is not added to the Blender context.
     """
 
@@ -162,7 +162,7 @@ class HistoryProps(object):
 def register_props():
     """
     Register the history property classes and assign to the blender
-    context under "batchapps_history".
+    context under "batch_history".
 
     :Returns:
         - A :class:`.HistoryProps` object
@@ -170,8 +170,8 @@ def register_props():
     """
     props_obj = HistoryProps()
 
-    bpy.types.Scene.batchapps_history = \
+    bpy.types.Scene.batch_history = \
         bpy.props.PointerProperty(type=HistoryDisplayProps)
-    props_obj.display = bpy.context.scene.batchapps_history
+    props_obj.display = bpy.context.scene.batch_history
 
     return props_obj

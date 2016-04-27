@@ -1,4 +1,4 @@
-#-------------------------------------------------------------------------
+﻿#-------------------------------------------------------------------------
 #
 # Batch Apps Blender Addon
 #
@@ -31,13 +31,12 @@ import os
 
 import threading
 
-from batchapps_blender.utils import BatchAppsOps
-from batchapps_blender.ui import ui_pools
-from batchapps_blender.props import props_pools
+from batched_blender.utils import BatchOps
+from batched_blender.ui import ui_pools
+from batched_blender.props import props_pools
 
-from batchapps.exceptions import RestCallException
 
-class BatchAppsPools(object):
+class BatchPools(object):
     """
     Manager for the display and creation of Batch Apps instance pools.
     """
@@ -46,7 +45,7 @@ class BatchAppsPools(object):
 
     def __init__(self, manager):
 
-        self.batchapps = manager
+        self.batch = manager
 
         self.ops = self._register_ops()
         self.props = self._register_props()
@@ -67,13 +66,13 @@ class BatchAppsPools(object):
         :Returns:
             - Runs the display function for the applicable page.
         """
-        return self.ui[bpy.context.scene.batchapps_session.page](ui, layout)
+        return self.ui[bpy.context.scene.batch_session.page](ui, layout)
 
     def _register_props(self):
         """
         Registers and retrieves the pools property objects.
         The dispaly properties are defined in a subclass which is assigned
-        to the scene.batchapps_pools context.
+        to the scene.batch_pools context.
 
         :Returns:
             - :class:`.PoolsProps`
@@ -83,22 +82,22 @@ class BatchAppsPools(object):
 
     def _register_ops(self):
         """
-        Registers each pool operator with a batchapps_pools prefix.
+        Registers each pool operator with a batch_pools prefix.
 
         :Returns:
             - A list of the names (str) of the registered pool operators.
         """
         ops = []
-        ops.append(BatchAppsOps.register("pools.page",
+        ops.append(BatchOps.register("pools.page",
                                          "Running pools",
                                          self._pools))
-        ops.append(BatchAppsOps.register("pools.start",
+        ops.append(BatchOps.register("pools.start",
                                          "Start new pool",
                                          self._start))
-        ops.append(BatchAppsOps.register("pools.delete",
+        ops.append(BatchOps.register("pools.delete",
                                          "Delete pool",
                                          self._delete))
-        ops.append(BatchAppsOps.register_expanding("pools.create",
+        ops.append(BatchOps.register_expanding("pools.create",
                                                    "Create pool",
                                                    self._create))
         return ops
@@ -137,15 +136,15 @@ class BatchAppsPools(object):
             - Blender-specific value {'FINISHED'} to indicate the operator has
               completed its action.
         """
-        self.props.display = bpy.context.scene.batchapps_pools
+        self.props.display = bpy.context.scene.batch_pools
 
         self.props.display.pools.clear()
         self.props.display.selected = -1
 
-        context.scene.batchapps_session.log.debug("Getting pool data.")
+        context.scene.batch_session.log.debug("Getting pool data.")
 
-        self.props.pools = self.batchapps.get_pools()
-        context.scene.batchapps_session.log.info(
+        self.props.pools = self.batch.get_pools()
+        context.scene.batch_session.log.info(
             "Retrieved {0} pool references.".format(len(self.props.pools)))
 
         for pool in self.props.pools:
@@ -154,7 +153,7 @@ class BatchAppsPools(object):
         for index, pool in enumerate(self.props.display.pools):
             self.register_pool(pool, index)
 
-        context.scene.batchapps_session.page = "POOLS"
+        context.scene.batch_session.page = "POOLS"
         return {'FINISHED'}
 
     def _start(self, op, context):
@@ -173,13 +172,13 @@ class BatchAppsPools(object):
             - Blender-specific value {'FINISHED'} to indicate the operator has
               completed its action.
         """
-        new_pool = self.batchapps.create(
+        new_pool = self.batch.create(
             target_size=self.props.display.pool_size)
 
-        context.scene.batchapps_session.log.info(
+        context.scene.batch_session.log.info(
             "Started new pool with ID: {0}".format(new_pool.id))
 
-        return bpy.ops.batchapps_pools.page()
+        return bpy.ops.batch_pools.page()
 
     def _delete(self, op, context):
         """
@@ -198,14 +197,14 @@ class BatchAppsPools(object):
               completed its action.
         """
         pool = self.get_selected_pool()
-        context.scene.batchapps_session.log.debug(
+        context.scene.batch_session.log.debug(
             "Selected pool {0}".format(pool.id))
 
         pool.delete()
-        context.scene.batchapps_session.log.info(
+        context.scene.batch_session.log.info(
             "Deleted pool with ID: {0}".format(pool.id))
 
-        return bpy.ops.batchapps_pools.page()
+        return bpy.ops.batch_pools.page()
 
     def _create(self, op):
         """
@@ -223,7 +222,7 @@ class BatchAppsPools(object):
             - Blender-specific value {'FINISHED'} to indicate the operator has
               completed its action.
         """
-        session = bpy.context.scene.batchapps_session
+        session = bpy.context.scene.batch_session
         session.page = "POOLS" if op.enabled else "CREATE"
         return {'FINISHED'}
 
@@ -233,7 +232,7 @@ class BatchAppsPools(object):
         the dispaly.
 
         :Returns:
-            - A :class:`batchapps.pools.Pool` object.
+            - A :class:`batch.pools.Pool` object.
         """
         return self.props.pools[self.props.display.selected]
 
@@ -242,7 +241,7 @@ class BatchAppsPools(object):
         Register a pool as an operator class for dispaly in the UI.
 
         :Args:
-            - pool (:class:`batchapps.jobs.SubmittedJob`): The pool to
+            - pool (:class:`batch.jobs.SubmittedJob`): The pool to
               register.
             - index (int): The index of the job in list currently displayed.
 
@@ -254,8 +253,8 @@ class BatchAppsPools(object):
         index_prop = bpy.props.IntProperty(default=index)
 
         def execute(self):
-            session = bpy.context.scene.batchapps_pools
-            bpy.context.scene.batchapps_session.log.debug(
+            session = bpy.context.scene.batch_pools
+            bpy.context.scene.batch_session.log.debug(
                 "Pool details opened: {0}, selected: {1}, index {2}".format(
                     self.enabled,
                     session.selected,
@@ -267,8 +266,8 @@ class BatchAppsPools(object):
             else:
                 session.selected = self.ui_index
 
-        bpy.context.scene.batchapps_session.log.debug(
+        bpy.context.scene.batch_session.log.debug(
             "Registering {0}".format(name))
 
-        return BatchAppsOps.register_expanding(name, label, execute,
+        return BatchOps.register_expanding(name, label, execute,
                                                ui_index=index_prop)

@@ -1,4 +1,4 @@
-#-------------------------------------------------------------------------
+﻿#-------------------------------------------------------------------------
 #
 # Batch Apps Blender Addon
 #
@@ -37,16 +37,16 @@ def on_load(*args):
     Run on blend file load.
 
     """
-    bpy.context.scene.batchapps_assets.path = ""
-    if bpy.context.scene.batchapps_session.page == "ASSETS":
-        bpy.ops.batchapps_assets.refresh()
+    bpy.context.scene.batch_assets.path = ""
+    if bpy.context.scene.batch_session.page == "ASSETS":
+        bpy.ops.batch_assets.refresh()
 
 def format_date(asset):
     """
     Format an assets last modified date for the UI.
 
     :Args:
-        - asset (:class:`batchapps.files.UserFile`): Asset whos date we
+        - asset (:class:`batch.files.UserFile`): Asset whos date we
           want to format.
 
     :Returns:
@@ -54,12 +54,12 @@ def format_date(asset):
           an empty string.
     """
     try:
-        datelist = asset.get_last_modified().split('T')
+        datelist = asset.get_last_modified().isoformat().split('T')
         datelist[1] = datelist[1].split('.')[0]
         return ' '.join(datelist)
 
     except:
-        bpy.context.scene.batchapps_session.log.debug(
+        bpy.context.scene.batch_session.log.debug(
             "Couldn't format date {0}.".format(asset.get_last_modified()))
         return ""
 
@@ -91,7 +91,7 @@ class AssetProps(bpy.types.PropertyGroup):
     """
     Asset Properties,
     Once instantiated, this class is set to both the Blender context, and
-    assigned to assets.BatchAppsAssets.props.
+    assigned to assets.BatchAssets.props.
     """
 
     collection = []
@@ -115,10 +115,8 @@ class AssetProps(bpy.types.PropertyGroup):
         Add an asset to both the display and object lists.
 
         """
-        log = bpy.context.scene.batchapps_session.log
+        log = bpy.context.scene.batch_session.log
         log.debug("Adding asset to ui list {0}.".format(asset.name))
-
-        uploaded = asset.is_uploaded()
 
         self.collection.append(asset)
         self.assets.add()
@@ -126,7 +124,7 @@ class AssetProps(bpy.types.PropertyGroup):
         entry.name = asset.name
         entry.timestamp = format_date(asset)
         entry.fullpath = asset.path
-        entry.upload_check = False if uploaded is None else True
+        entry.upload_check = asset.is_uploaded()
 
         log.debug("Total assets now {0}.".format(len(self.assets)))
 
@@ -135,7 +133,7 @@ class AssetProps(bpy.types.PropertyGroup):
         Remove selected asset from both display and object lists.
 
         """
-        bpy.context.scene.batchapps_session.log.debug(
+        bpy.context.scene.batch_session.log.debug(
             "Removing index {0}.".format(self.index))
 
         self.collection.pop(self.index)
@@ -147,7 +145,7 @@ class AssetProps(bpy.types.PropertyGroup):
         Get the asset object whos path is the job file path.
 
         """
-        log = bpy.context.scene.batchapps_session.log
+        log = bpy.context.scene.batch_session.log
 
         for asset in self.collection:
             if asset.path == self.path:
@@ -166,7 +164,7 @@ class AssetProps(bpy.types.PropertyGroup):
         self.assets.clear()
         self.index = 0
 
-        bpy.context.scene.batchapps_session.log.debug("Reset asset lists.")
+        bpy.context.scene.batch_session.log.debug("Reset asset lists.")
 
     def set_uploaded(self):
         """
@@ -180,15 +178,15 @@ class AssetProps(bpy.types.PropertyGroup):
 def register_props():
     """
     Register the asset property classes and assign to the blender
-    context under "batchapps_assets".
+    context under "batch_assets".
 
     :Returns:
         - A :class:`.AssetProps` object
     """
 
-    bpy.types.Scene.batchapps_assets = \
+    bpy.types.Scene.batch_assets = \
         bpy.props.PointerProperty(type=AssetProps)
 
     bpy.app.handlers.load_post.append(on_load)
 
-    return bpy.context.scene.batchapps_assets
+    return bpy.context.scene.batch_assets

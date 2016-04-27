@@ -1,4 +1,4 @@
-#-------------------------------------------------------------------------
+﻿#-------------------------------------------------------------------------
 #
 # Batch Apps Blender Addon
 #
@@ -35,28 +35,22 @@ import string
 import threading
 import time
 
-from batchapps_blender.ui import ui_submission
-from batchapps_blender.props import props_submission
-from batchapps_blender.utils import BatchAppsOps
-
-from batchapps.exceptions import (
-    SessionExpiredException,
-    AuthenticationException,
-    InvalidConfigException)
+from batched_blender.ui import ui_submission
+from batched_blender.props import props_submission
+from batched_blender.utils import BatchOps, BatchAsset
 
 
-class BatchAppsSubmission(object):
+class BatchSubmission(object):
     """
     Manages the creation and submission of a new job.
     """
 
     pages = ['SUBMIT', 'PROCESSING', 'SUBMITTED']
 
-    def __init__(self, job_mgr, file_mgr, pool_mgr):
+    def __init__(self, batch, uploader):
 
-        self.batchapps_job = job_mgr
-        self.batchapps_files = file_mgr
-        self.batchapps_pool = pool_mgr
+        self.batch = batch
+        self.uploader = uploader
 
         self.ops = self._register_ops()
         self.props = self._register_props()
@@ -77,13 +71,13 @@ class BatchAppsSubmission(object):
         :Returns:
             - Runs the display function for the applicable page.
         """
-        return self.ui[bpy.context.scene.batchapps_session.page](ui, layout)
+        return self.ui[bpy.context.scene.batch_session.page](ui, layout)
 
     def _register_props(self):
         """
         Registers and retrieves the submission property objects.page
         The dispaly properties are defined in a subclass which is assigned
-        to the scene.batchapps_submission context.
+        to the scene.batch_submission context.
 
         :Returns:
             - :class:`.SubmissionProps`
@@ -93,7 +87,7 @@ class BatchAppsSubmission(object):
         
     def _register_ops(self):
         """
-        Registers each job submission operator with a batchapps_submission
+        Registers each job submission operator with a batch_submission
         prefix.
 
         :Returns:
@@ -101,13 +95,13 @@ class BatchAppsSubmission(object):
               operators.
         """
         ops = []
-        ops.append(BatchAppsOps.register("submission.page",
+        ops.append(BatchOps.register("submission.page",
                                          "Create new job",
                                          self._submission))
-        ops.append(BatchAppsOps.register("submission.start",
+        ops.append(BatchOps.register("submission.start",
                                          "Submit job",
                                          self._start))
-        ops.append(BatchAppsOps.register("submission.processing",
+        ops.append(BatchOps.register("submission.processing",
                                          "Submitting new job",
                                          modal=self._processing_modal,
                                          invoke=self._processing_invoke,
@@ -151,7 +145,7 @@ class BatchAppsSubmission(object):
               completion of this function.
         """
         if event.type == 'TIMER':
-            context.scene.batchapps_session.log.debug("SubmitThread complete.")
+            context.scene.batch_session.log.debug("SubmitThread complete.")
             if not self.props.thread.is_alive():
                 context.window_manager.event_timer_remove(op._timer)
             return {'FINISHED'}
@@ -175,7 +169,7 @@ class BatchAppsSubmission(object):
               will continue to process after the completion of this function.
         """
         self.props.thread.start()
-        context.scene.batchapps_session.log.debug("SubmitThread initiated.")
+        context.scene.batch_session.log.debug("SubmitThread initiated.")
 
         context.window_manager.modal_handler_add(op)
         op._timer = context.window_manager.event_timer_add(1, context.window)
@@ -198,14 +192,14 @@ class BatchAppsSubmission(object):
             - Blender-specific value {'FINISHED'} to indicate the operator has
               completed its action.
         """
-        submit_thread = lambda: BatchAppsOps.session(self.submit_job)
+        submit_thread = lambda: BatchOps.session(self.submit_job)
         self.props.thread = threading.Thread(name="SubmitThread",
                                              target=submit_thread)
 
-        bpy.ops.batchapps_submission.processing('INVOKE_DEFAULT')
+        bpy.ops.batch_submission.processing('INVOKE_DEFAULT')
 
-        if context.scene.batchapps_session.page == "SUBMIT":
-            context.scene.batchapps_session.page = "PROCESSING"
+        if context.scene.batch_session.page == "SUBMIT":
+            context.scene.batch_session.page = "PROCESSING"
         
         return {'FINISHED'}
 
@@ -224,7 +218,7 @@ class BatchAppsSubmission(object):
             - Blender-specific value {'FINISHED'} to indicate the operator has
               completed its action.
         """
-        bpy.context.scene.batchapps_session.page = "SUBMIT"
+        bpy.context.scene.batch_session.page = "SUBMIT"
         self.valid_scene(context)
 
         return {'FINISHED'}
@@ -238,12 +232,12 @@ class BatchAppsSubmission(object):
               context.
 
         """
-        if not context.scene.batchapps_submission.valid_range:
-            context.scene.batchapps_session.log.warning(
+        if not context.scene.batch_submission.valid_range:
+            context.scene.batch_session.log.warning(
                 "Selected frame range falls outside global range.")
 
-        if not context.scene.batchapps_submission.valid_format:
-            context.scene.batchapps_session.log.warning(
+        if not context.scene.batch_submission.valid_format:
+            context.scene.batch_session.log.warning(
                 "Invalid output format - using PNG instead.")
 
     def gather_parameters(self):
@@ -253,7 +247,7 @@ class BatchAppsSubmission(object):
         :Returns:
             - A dictionary of parameters (stR).
         """
-        session = bpy.context.scene.batchapps_session
+        session = bpy.context.scene.batch_session
         params = {}
 
         params["output"] = bpy.path.clean_name(self.props.display.title)
@@ -272,8 +266,8 @@ class BatchAppsSubmission(object):
         :Returns:
             - The pool id (string).
         """
-        session = bpy.context.scene.batchapps_session
-        pools = bpy.context.scene.batchapps_pools
+        session = bpy.context.scene.batch_session
+        pools = bpy.context.scene.batch_pools
         pool = None
 
         if self.props.display.pool == {"reuse"} and self.props.display.pool_id:
@@ -284,7 +278,7 @@ class BatchAppsSubmission(object):
         elif self.props.display.pool == {"create"}:
             session.log.info("Creating new pool.")
 
-            pool = self.batchapps_pool.create(target_size=pools.pool_size)
+            pool = self.batch_pool.create(target_size=pools.pool_size)
             session.log.info("Created pool with ID: {0}".format(pool.id))
 
             self.props.display.pool = {"reuse"}
@@ -321,7 +315,7 @@ class BatchAppsSubmission(object):
         :Raises:
             - ValueError if one or more assets fails to upload.
         """
-        session = bpy.context.scene.batchapps_session
+        session = bpy.context.scene.batch_session
         session.log.info("Uploading any required files.")
 
         failed = new_job.required_files.upload()
@@ -334,28 +328,28 @@ class BatchAppsSubmission(object):
         Gather the assets required for the job and allocate the job file from
         which the rendering will be run.
         """
-        session = bpy.context.scene.batchapps_session
-        assets = bpy.context.scene.batchapps_assets
+        session = bpy.context.scene.batch_session
+        assets = bpy.context.scene.batch_assets
 
         if assets.path == '':
             session.log.info("No assets referenced yet. Checking now.")
-            bpy.ops.batchapps_assets.refresh()
+            bpy.ops.batch_assets.refresh()
 
-            if session.page == 'LOGIN':
-                raise SessionExpiredException("AAD token has expired")
+            #if session.page == 'LOGIN':
+            #    raise Exception("AAD token has expired") #TODO: SessionExpiredException
 
-            elif session.page == 'ERROR':
+            if session.page == 'ERROR':
                 raise Exception("Failed to set up assets for job")
 
-        file_set = self.batchapps_files.create_file_set(assets.collection)
+        file_set = self.batch_files.create_file_set(assets.collection)
         new_job.add_file_collection(file_set)
 
-        if bpy.context.scene.batchapps_assets.temp:
+        if bpy.context.scene.batch_assets.temp:
             session.log.debug("Using temp blend file {0}".format(assets.path))
             bpy.ops.wm.save_as_mainfile(filepath=assets.path,
                                         check_existing=False,
                                         copy=True)
-            jobfile = self.batchapps_files.file_from_path(assets.path)
+            jobfile = BatchAsset(assets.path, self.uploader)
 
             new_job.add_file(jobfile)
             new_job.set_job_file(-1)
@@ -363,9 +357,9 @@ class BatchAppsSubmission(object):
         else:
             session.log.debug("Using saved blend file {0}".format(assets.path))
             try:
-                jobfile = bpy.context.scene.batchapps_assets.get_jobfile()
+                jobfile = bpy.context.scene.batch_assets.get_jobfile()
             except ValueError:
-                jobfile = self.batchapps_files.file_from_path(assets.path)
+                jobfile = BatchAsset(assets.path, self.uploader)
 
             new_job.set_job_file(jobfile)
 
@@ -378,13 +372,13 @@ class BatchAppsSubmission(object):
 
         Sets the page to COMPLETE if successful.
         """
-        self.props.display = bpy.context.scene.batchapps_submission
-        session = bpy.context.scene.batchapps_session
-        assets = bpy.context.scene.batchapps_assets
+        self.props.display = bpy.context.scene.batch_submission
+        session = bpy.context.scene.batch_session
+        assets = bpy.context.scene.batch_assets
         session.log.info("Starting new job submission.")
         self.valid_scene(bpy.context)
 
-        new_job = self.batchapps_job.create_job(self.get_title())
+        new_job = self.batch_job.create_job(self.get_title())
         self.configure_assets(new_job)
 
         new_job.pool = self.get_pool()

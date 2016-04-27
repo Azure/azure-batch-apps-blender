@@ -30,9 +30,6 @@
     <Compile Include="batchapps_blender\assets.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="batchapps_blender\auth.py">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="batchapps_blender\history.py">
       <SubType>Code</SubType>
     </Compile>
@@ -51,9 +48,6 @@
     <Compile Include="batchapps_blender\props\props_assets.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="batchapps_blender\props\props_auth.py">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="batchapps_blender\props\props_history.py">
       <SubType>Code</SubType>
     </Compile>
@@ -68,9 +62,6 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="batchapps_blender\ui\ui_assets.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="batchapps_blender\ui\ui_auth.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="batchapps_blender\ui\ui_history.py">

@@ -1,4 +1,4 @@
-#-------------------------------------------------------------------------
+﻿#-------------------------------------------------------------------------
 #
 # Batch Apps Blender Addon
 #
@@ -46,7 +46,7 @@ def static(ui, layout, active):
         (bpy.context.scene.render.resolution_percentage/100))
     height = int(bpy.context.scene.render.resolution_y*\
         (bpy.context.scene.render.resolution_percentage/100))
-    output = bpy.context.scene.batchapps_submission.image_format
+    output = bpy.context.scene.batch_submission.image_format
     
     ui.label("Width: {0}".format(width), layout.row(), active=active)
     ui.label("Height: {0}".format(height), layout.row(), active=active)
@@ -66,9 +66,9 @@ def variable(ui, layout, active):
         - active (bool): Whether UI components are enabled.
 
     """
-    ui.prop(bpy.context.scene.batchapps_submission, "start_f", layout.row(),
+    ui.prop(bpy.context.scene.batch_submission, "start_f", layout.row(),
             label="Start Frame ", active=active)
-    ui.prop(bpy.context.scene.batchapps_submission, "end_f", layout.row(),
+    ui.prop(bpy.context.scene.batch_submission, "end_f", layout.row(),
             label="End Frame ", active=active)
 
 
@@ -86,23 +86,23 @@ def pool_select(ui, layout, active):
 
     """
     ui.label("", layout)
-    ui.prop(bpy.context.scene.batchapps_submission, "pool", layout.row(),
+    ui.prop(bpy.context.scene.batch_submission, "pool", layout.row(),
             label=None, expand=True, active=active)
 
-    if bpy.context.scene.batchapps_submission.pool == {"reuse"}:
+    if bpy.context.scene.batch_submission.pool == {"reuse"}:
         ui.label("Use an existing persistant pool by ID", layout.row(), active=active)
-        ui.prop(bpy.context.scene.batchapps_submission, "pool_id",
+        ui.prop(bpy.context.scene.batch_submission, "pool_id",
                 layout.row(), active=active)
 
-    elif bpy.context.scene.batchapps_submission.pool == {"create"}:
+    elif bpy.context.scene.batch_submission.pool == {"create"}:
         ui.label("Create a new persistant pool", layout.row(), active=active)
-        ui.prop(bpy.context.scene.batchapps_pools, "pool_size",
+        ui.prop(bpy.context.scene.batch_pools, "pool_size",
                 layout.row(), "Number of instances:", active=active)
 
     else:
         ui.label("Auto provision a pool for this job", layout.row(),
                  active=active)
-        ui.prop(bpy.context.scene.batchapps_submission, "pool_size",
+        ui.prop(bpy.context.scene.batch_submission, "pool_size",
                 layout.row(), "Number of instances:", active=active)
 
 def pre_submission(ui, layout):
@@ -117,7 +117,7 @@ def pre_submission(ui, layout):
             components.
 
     """
-    if not bpy.context.scene.batchapps_submission.valid_format:
+    if not bpy.context.scene.batch_submission.valid_format:
         ui.label("Warning: Output format {0}".format(
             bpy.context.scene.render.image_settings.file_format), layout)
 
@@ -126,7 +126,7 @@ def pre_submission(ui, layout):
         row.alert=True
         ui.operator("submission.start", "Submit Job", row)
         
-    elif not bpy.context.scene.batchapps_submission.valid_range:
+    elif not bpy.context.scene.batch_submission.valid_range:
         ui.label("Warning: Selected frame range falls", layout)
         ui.label("outside global render range", layout)
         row = layout.row(align=True)
@@ -170,7 +170,7 @@ def submit(ui, layout):
             components.
 
     """
-    ui.prop(bpy.context.scene.batchapps_submission, "title", layout,
+    ui.prop(bpy.context.scene.batch_submission, "title", layout,
             label="Job name ", active=True)
 
     static(ui, layout, True)
@@ -190,7 +190,7 @@ def processing(ui, layout):
             components.
 
     """
-    ui.prop(bpy.context.scene.batchapps_submission, "title", layout.row(),
+    ui.prop(bpy.context.scene.batch_submission, "title", layout.row(),
             label="Job name ", active=False)
 
     static(ui, layout, False)

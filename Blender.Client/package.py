@@ -1,4 +1,4 @@
-#-------------------------------------------------------------------------
+﻿#-------------------------------------------------------------------------
 #
 # Batch Apps Blender Addon
 #
@@ -48,7 +48,7 @@ def main():
             return
 
     package = os.path.join(package_dir, "batchapps-blender-{0}.zip".format(VERSION))
-    source = os.path.abspath("batchapps_blender")
+    source = os.path.abspath("batched_blender")
 
     with zipfile.ZipFile(package, mode='w') as blend_zip:
         for root, dirs, files in os.walk(source):

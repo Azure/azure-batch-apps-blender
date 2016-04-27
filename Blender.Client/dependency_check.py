@@ -57,13 +57,16 @@ import importlib
 
 warnings.simplefilter('ignore')
 
-TEMP_DIR = os.path.join(bpy.context.user_preferences.filepaths.temporary_directory, "batchapps_blender_install")
+TEMP_DIR = os.path.join(bpy.context.user_preferences.filepaths.temporary_directory, "batched_blender_install")
 INSTALL_DIR = os.path.join(sys.prefix, "lib", "site-packages")
 LIBS = [
     {"lib":"oauthlib",          "ver":"0.7.2",  "mod":"oauthlib",           "ext":"tar.gz"},
     {"lib":"requests-oauthlib", "ver":"0.4.2",  "mod":"requests_oauthlib",  "ext":"tar.gz"},
     {"lib":"keyring",           "ver":"4.0",    "mod":"keyring",            "ext":"zip"},
-    {"lib":"azure-batch",       "ver":"0.3.0",  "mod":"batch",              "ext":"tar.gz"}
+    {"lib":"msrest",           "ver":"4.0",    "mod":"keyring",            "ext":"zip"},
+    {"lib":"msrestazure",           "ver":"4.0",    "mod":"keyring",            "ext":"zip"},
+    {"lib":"azure-batch",       "ver":"0.3.0",  "mod":"batch",              "ext":"tar.gz"},
+    {"lib":"azure-storage",       "ver":"0.3.0",  "mod":"batch",              "ext":"tar.gz"}
     ]
 
 def unpack_tar(lib_full, lib_dir, lib_module):

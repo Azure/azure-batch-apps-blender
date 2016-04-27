@@ -27,7 +27,6 @@
 #--------------------------------------------------------------------------
 
 
-import logging
 import os
 import random
 import re
@@ -38,12 +37,9 @@ import bpy
 
 from batched_blender.ui import ui_assets
 from batched_blender.props import props_assets
-from batched_blender.utils import BatchOps
+from batched_blender.utils import BatchOps, BatchAsset
 
 import azure.storage.blob as az_storage
-
-
-_LOG = logging.getLogger(__name__)
 
 
 class BatchAssets(object):
@@ -53,13 +49,13 @@ class BatchAssets(object):
 
     pages = ["ASSETS"]
 
-    def __init__(self, manager):
+    def __init__(self, manager, uploader):
 
         self.batch = manager
         self.ops = self._register_ops()
         self.props = self._register_props()
         self.ui = self._register_ui()
-        self.uploader = az_storage.BlockBlobService(AZURE_STORAGE_ACCOUNT, keys.key1, endpoint_suffix='')
+        self.uploader = uploader
 
     def display(self, ui, layout):
         """
@@ -229,17 +225,17 @@ class BatchAssets(object):
         session = context.scene.batch_session
         upload = self.pending_upload()
 
-        _LOG.info("{0} assets to be uploaded".format(len(upload)))
+        session.log.info("{0} assets to be uploaded".format(len(upload)))
 
         for index in upload:
             asset = self.props.collection[index]
             display = self.props.assets[index]
 
             try:
-                _LOG.debug("Uploading {0}".format(asset.name))
-                asset.upload(force=True)
+                session.log.debug("Uploading {0}".format(asset.name))
+                asset.upload()
                 display.upload_check = True
-                _LOG.debug("Upload complete")
+                session.log.debug("Upload complete")
                 
             except Exception as exp:
                 print('Failed to upload: {0}'.format(exp))
@@ -268,7 +264,7 @@ class BatchAssets(object):
         session = context.scene.batch_session
         session.log.debug("Selected file {0}".format(op.filepath))
 
-        user_file = self.batch.file_from_path(op.filepath)
+        user_file = BatchAsset(op.filepath, self.uploader)
         if user_file and user_file not in self.props.collection:
             self.props.add_asset(user_file)
 
@@ -402,7 +398,7 @@ class BatchAssets(object):
         temp_dir = bpy.context.user_preferences.filepaths.temporary_directory
 
         if bpy.data.filepath == '' and self.props.temp:
-            _LOG.debug(
+            session.log.debug(
                 "Blend path: Using current temp {0}".format(self.props.path))
 
             if self.props.path:
@@ -415,32 +411,32 @@ class BatchAssets(object):
             temp_path = os.path.join(temp_dir, self.name_generator())
             self.props.temp = True
 
-            _LOG.debug(
+            session.log.debug(
                 "Blend path: Using new temp {0}".format(temp_path))
             return temp_path
 
         else:
             self.props.temp = False
 
-            _LOG.debug(
+            session.log.debug(
                 "Blend path: Using saved {0}".format(bpy.data.filepath))
             return bpy.data.filepath
 
     def generate_collection(self):
         """
         Runs :func:`.collect_assets` and converts the result path list into
-        BatchApps UserFile objects, which the props class then adds to
+        Batch UserFile objects, which the props class then adds to
         the display assets list as well as the UserFile collection.
 
         """
-        session = bpy.context.scene.batchapps_session
+        session = bpy.context.scene.batch_session
 
         self.props.reset()
         assets = self.collect_assets()
 
         for asset in assets:
             session.log.debug("Discovered asset {0}.".format(asset))
-            user_file = self.batchapps.file_from_path(asset)
+            user_file = BatchAsset(asset, self.uploader)
 
             if user_file and user_file not in self.props.collection:
                 self.props.add_asset(user_file)
@@ -451,7 +447,7 @@ class BatchAssets(object):
         
         if not self.props.temp:
             session.log.debug("Adding blend file as asset.")
-            jobfile = self.batchapps.file_from_path(self.props.path)
+            jobfile = BatchAsset(self.props.path, self.uploader)
 
             if jobfile and jobfile not in self.props.collection:
                 self.props.add_asset(jobfile)

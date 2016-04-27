@@ -1,4 +1,4 @@
-#-------------------------------------------------------------------------
+﻿#-------------------------------------------------------------------------
 #
 # Batch Apps Blender Addon
 #
@@ -34,15 +34,15 @@ def on_load(*args):
 
     Run on blend file load when page is POOLS or CREATE.
     """
-    if bpy.context.scene.batchapps_session.page in ["POOLS", "CREATE"]:
-        bpy.ops.batchapps_pools.page()
+    if bpy.context.scene.batch_session.page in ["POOLS", "CREATE"]:
+        bpy.ops.batch_pools.page()
 
 def format_date(pool):
     """
     Format a pool created date for the UI.
 
     :Args:
-        - pool (:class:`batchapps.pool.Pool`): Pool whos date we want to
+        - pool (:class:`batch.pool.Pool`): Pool whos date we want to
           format.
 
     :Returns:
@@ -55,7 +55,7 @@ def format_date(pool):
         return ' '.join(datelist)
 
     except:
-        bpy.context.scene.batchapps_session.log.debug(
+        bpy.context.scene.batch_session.log.debug(
             "Couldn't format date {0}.".format(pool.created))
         return ""
 
@@ -115,7 +115,7 @@ class PoolDisplayProps(bpy.types.PropertyGroup):
         Add a pool reference to the pool display list.
 
         """
-        log = bpy.context.scene.batchapps_session.log
+        log = bpy.context.scene.batch_session.log
         log.debug("Adding pool to ui list {0}".format(pool.id))
 
         self.pools.add()
@@ -131,7 +131,7 @@ class PoolDisplayProps(bpy.types.PropertyGroup):
 class PoolsProps(object):
     """
     Pools Properties.
-    Once instantiated, this class is assigned to pools.BatchAppsPools.props
+    Once instantiated, this class is assigned to pools.BatchPools.props
     but is not added to the Blender context.
     """
         
@@ -142,7 +142,7 @@ class PoolsProps(object):
 def register_props():
     """
     Register the pool property classes and assign to the blender
-    context under "batchapps_pools".
+    context under "batch_pools".
     Also registers pool event handlers.
 
     :Returns:
@@ -150,10 +150,10 @@ def register_props():
 
     """
     props_obj = PoolsProps()
-    bpy.types.Scene.batchapps_pools = \
+    bpy.types.Scene.batch_pools = \
         bpy.props.PointerProperty(type=PoolDisplayProps)
 
-    props_obj.display = bpy.context.scene.batchapps_pools
+    props_obj.display = bpy.context.scene.batch_pools
     bpy.app.handlers.load_post.append(on_load)
 
     return props_obj

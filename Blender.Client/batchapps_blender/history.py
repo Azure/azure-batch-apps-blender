@@ -1,4 +1,4 @@
-#-------------------------------------------------------------------------
+﻿#-------------------------------------------------------------------------
 #
 # Batch Apps Blender Addon
 #
@@ -31,13 +31,12 @@ import os
 
 import threading
 
-from batchapps_blender.utils import BatchAppsOps
-from batchapps_blender.ui import ui_history
-from batchapps_blender.props import props_history
+from batched_blender.utils import BatchOps
+from batched_blender.ui import ui_history
+from batched_blender.props import props_history
 
-from batchapps.exceptions import RestCallException
 
-class BatchAppsHistory(object):
+class BatchHistory(object):
     """
     Manger for the retrival and display of the users job history.
     """
@@ -46,7 +45,7 @@ class BatchAppsHistory(object):
 
     def __init__(self, manager):
 
-        self.batchapps = manager
+        self.batch = manager
         self.ops = self._register_ops()
         self.props = self._register_props()
         self.ui = self._register_ui()
@@ -66,13 +65,13 @@ class BatchAppsHistory(object):
         :Returns:
             - Runs the display function for the applicable page.
         """
-        return self.ui[bpy.context.scene.batchapps_session.page](ui, layout)
+        return self.ui[bpy.context.scene.batch_session.page](ui, layout)
 
     def _register_props(self):
         """
         Registers and retrieves the history property objects.
         The dispaly properties are defined in a subclass which is assigned
-        to the scene.batchapps_history context.
+        to the scene.batch_history context.
 
         :Returns:
             - :class:`.HistoryProps`
@@ -82,35 +81,35 @@ class BatchAppsHistory(object):
 
     def _register_ops(self):
         """
-        Registers each job history operator with a batchapps_history prefix.
+        Registers each job history operator with a batch_history prefix.
 
         :Returns:
             - A list of the names (str) of the registered job history
               operators.
         """
         ops = []
-        ops.append(BatchAppsOps.register("history.page",
+        ops.append(BatchOps.register("history.page",
                                          "Job history",
                                          self._history))
-        ops.append(BatchAppsOps.register("history.first",
+        ops.append(BatchOps.register("history.first",
                                          "Beginning",
                                          self._first))
-        ops.append(BatchAppsOps.register("history.last",
+        ops.append(BatchOps.register("history.last",
                                          "End",
                                          self._last))
-        ops.append(BatchAppsOps.register("history.more",
+        ops.append(BatchOps.register("history.more",
                                          "Next",
                                          self._more))
-        ops.append(BatchAppsOps.register("history.less",
+        ops.append(BatchOps.register("history.less",
                                          "Previous",
                                          self._less))
-        ops.append(BatchAppsOps.register("history.refresh",
+        ops.append(BatchOps.register("history.refresh",
                                          "Refresh",
                                          self._refresh))
-        ops.append(BatchAppsOps.register("history.cancel",
+        ops.append(BatchOps.register("history.cancel",
                                          "Cancel job",
                                          self._cancel))
-        ops.append(BatchAppsOps.register("history.loading",
+        ops.append(BatchOps.register("history.loading",
                                          "Loading job history",
                                          modal=self._loading_modal,
                                          invoke=self._loading_invoke,
@@ -154,7 +153,7 @@ class BatchAppsHistory(object):
               completion of this function.
         """
         if event.type == 'TIMER':
-            context.scene.batchapps_session.log.debug("HistoryThread complete.")
+            context.scene.batch_session.log.debug("HistoryThread complete.")
             if not self.props.thread.is_alive():
                 context.window_manager.event_timer_remove(op._timer)
             return {'FINISHED'}
@@ -178,7 +177,7 @@ class BatchAppsHistory(object):
               wil continue to process after the completion of this function.
         """
         self.props.thread.start()
-        context.scene.batchapps_session.log.debug("HistoryThread initiated.")
+        context.scene.batch_session.log.debug("HistoryThread initiated.")
 
         context.window_manager.modal_handler_add(op)
         op._timer = context.window_manager.event_timer_add(1, context.window)
@@ -202,19 +201,19 @@ class BatchAppsHistory(object):
             - Blender-specific value {'FINISHED'} to indicate the operator has
               completed its action.
         """
-        self.props.display = context.scene.batchapps_history
+        self.props.display = context.scene.batch_history
         self.props.display.selected = -1
         self.props.display.index = 0
         self.props.display.total_count = 0
 
-        history_thread = lambda: BatchAppsOps.session(self.get_job_list)
+        history_thread = lambda: BatchOps.session(self.get_job_list)
         self.props.thread = threading.Thread(name="HistoryThread",
                                              target=history_thread)
 
-        bpy.ops.batchapps_history.loading('INVOKE_DEFAULT')
+        bpy.ops.batch_history.loading('INVOKE_DEFAULT')
 
-        if context.scene.batchapps_session.page == "HOME":
-            context.scene.batchapps_session.page = "LOADING"
+        if context.scene.batch_session.page == "HOME":
+            context.scene.batch_session.page = "LOADING"
 
         return {'FINISHED'}
 
@@ -340,12 +339,12 @@ class BatchAppsHistory(object):
               completed its action.
         """
         job = self.get_selected_job()
-        context.scene.batchapps_session.log.debug(
+        context.scene.batch_session.log.debug(
             "Selected job {0}".format(job.id))
 
         job.cancel()
         job.update()
-        context.scene.batchapps_session.log.info(
+        context.scene.batch_session.log.info(
             "Cancelled with ID: {0}".format(job.id))
 
         return {'FINISHED'}
@@ -356,7 +355,7 @@ class BatchAppsHistory(object):
         the dispaly.
 
         :Returns:
-            - A :class:`batchapps.jobs.SubmittedJob` object.
+            - A :class:`batch.jobs.SubmittedJob` object.
         """
         return self.props.job_list[self.props.display.selected]
 
@@ -372,14 +371,14 @@ class BatchAppsHistory(object):
         self.props.job_list = []
         self.props.display.jobs.clear()
 
-        bpy.context.scene.batchapps_session.log.debug(
+        bpy.context.scene.batch_session.log.debug(
             "Getting job data: index {0}, total {1}, percall {2}".format(
                 self.props.display.index,
                 self.props.display.total_count,
                 self.props.display.per_call))
 
 
-        latest_jobs = self.batchapps.get_jobs(
+        latest_jobs = self.batch.get_jobs(
             index=self.props.display.index,
             per_call=self.props.display.per_call)
 
@@ -387,17 +386,17 @@ class BatchAppsHistory(object):
             self.props.job_list.append(job)
             self.props.display.add_job(job)
 
-        self.props.display.total_count = len(self.batchapps)
+        self.props.display.total_count = len(self.batch)
         for index, job in enumerate(self.props.display.jobs):
             self.register_job(job, index)
 
-        bpy.context.scene.batchapps_session.log.info(
+        bpy.context.scene.batch_session.log.info(
             "Retrieved {0} of {1} job "
             "listings.".format(len(latest_jobs),
                                self.props.display.total_count))
 
-        bpy.context.scene.batchapps_session.page = "HISTORY"
-        bpy.context.scene.batchapps_session.redraw()
+        bpy.context.scene.batch_session.page = "HISTORY"
+        bpy.context.scene.batch_session.redraw()
 
 
     def register_job(self, job, index):
@@ -405,7 +404,7 @@ class BatchAppsHistory(object):
         Register a job as an operator class for dispaly in the UI.
 
         :Args:
-            - job (:class:`batchapps.jobs.SubmittedJob`): The job to register.
+            - job (:class:`batch.jobs.SubmittedJob`): The job to register.
             - index (int): The index of the job in list currently displayed.
 
         :Returns:
@@ -416,8 +415,8 @@ class BatchAppsHistory(object):
         index_prop = bpy.props.IntProperty(default=index)
 
         def execute(self):
-            session = bpy.context.scene.batchapps_history
-            bpy.context.scene.batchapps_session.log.debug(
+            session = bpy.context.scene.batch_history
+            bpy.context.scene.batch_session.log.debug(
                 "Job details opened: {0}, selected: {1}, index {2}".format(
                     self.enabled,
                     session.selected,
@@ -429,8 +428,8 @@ class BatchAppsHistory(object):
             else:
                 session.selected = self.ui_index
 
-        bpy.context.scene.batchapps_session.log.debug(
+        bpy.context.scene.batch_session.log.debug(
             "Registering {0}".format(name))
 
-        return BatchAppsOps.register_expanding(name, label, execute,
+        return BatchOps.register_expanding(name, label, execute,
                                                ui_index=index_prop)

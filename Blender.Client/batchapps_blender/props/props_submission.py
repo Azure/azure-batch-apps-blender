@@ -1,4 +1,4 @@
-#-------------------------------------------------------------------------
+﻿#-------------------------------------------------------------------------
 #
 # Batch Apps Blender Addon
 #
@@ -38,10 +38,10 @@ def framecheck(*args):
     Run when scene is updated and page is SUBMIT.
 
     """
-    submission = bpy.context.scene.batchapps_submission
-    session = bpy.context.scene.batchapps_session
+    submission = bpy.context.scene.batch_submission
+    session = bpy.context.scene.batch_session
 
-    if bpy.context.scene.batchapps_session.page not in ["SUBMIT"]:
+    if bpy.context.scene.batch_session.page not in ["SUBMIT"]:
         return
 
     if submission.end_f < submission.start_f:
@@ -65,8 +65,8 @@ def formatcheck(*args):
     Run when scene is updated and page is SUBMIT.
 
     """
-    submission = bpy.context.scene.batchapps_submission
-    session = bpy.context.scene.batchapps_session
+    submission = bpy.context.scene.batch_submission
+    session = bpy.context.scene.batch_session
 
     if session.page not in ["SUBMIT"]:
         return
@@ -89,7 +89,7 @@ def on_load(*args):
     Run on blend file load.
 
     """
-    submission = bpy.context.scene.batchapps_submission
+    submission = bpy.context.scene.batch_submission
 
     submission.start_f = bpy.context.scene.frame_start
     submission.end_f = bpy.context.scene.frame_end
@@ -166,7 +166,7 @@ class SubmissionDisplayProps(bpy.types.PropertyGroup):
 class SubmissionProps(object):
     """
     Submission Properties.
-    Once instantiated, this class is assigned to submission.BatchAppsSubmission.props
+    Once instantiated, this class is assigned to submission.BatchSubmission.props
     but is not added to the Blender context.
     """
 
@@ -187,7 +187,7 @@ class SubmissionProps(object):
 def register_props():
     """
     Register the submission property classes and assign to the blender
-    context under "batchapps_submission".
+    context under "batch_submission".
     Also registers submission event handlers.
 
     :Returns:
@@ -195,10 +195,10 @@ def register_props():
     
     """
     props_obj = SubmissionProps()
-    bpy.types.Scene.batchapps_submission = \
+    bpy.types.Scene.batch_submission = \
         bpy.props.PointerProperty(type=SubmissionDisplayProps)
 
-    props_obj.display = bpy.context.scene.batchapps_submission
+    props_obj.display = bpy.context.scene.batch_submission
     props_obj.register_handlers()
 
     return props_obj

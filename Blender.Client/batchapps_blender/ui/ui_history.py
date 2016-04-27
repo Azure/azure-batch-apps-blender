@@ -1,4 +1,4 @@
-#-------------------------------------------------------------------------
+﻿#-------------------------------------------------------------------------
 #
 # Batch Apps Blender Addon
 #
@@ -41,7 +41,7 @@ def status_icon(job):
 
     """
     status = job.status.lower()
-    icons = bpy.context.scene.batchapps_history.icons
+    icons = bpy.context.scene.batch_history.icons
     return icons.get(status, "")
 
 def details(ui, layout, job):
@@ -87,7 +87,7 @@ def page_controls(ui, layout, num_jobs):
         - num_jobs (int): The total number of jobs in the users history.
 
     """
-    history = bpy.context.scene.batchapps_history
+    history = bpy.context.scene.batch_history
 
     if history.total_count == 0:
         start = 0
@@ -133,7 +133,7 @@ def history(ui, layout):
             components.
 
     """
-    jobs = bpy.context.scene.batchapps_history.jobs
+    jobs = bpy.context.scene.batch_history.jobs
 
     page_controls(ui, layout, len(jobs))
     outer_box = layout.box()
@@ -144,7 +144,7 @@ def history(ui, layout):
     else:
         for index, job in enumerate(jobs):
 
-            if index == bpy.context.scene.batchapps_history.selected:
+            if index == bpy.context.scene.batch_history.selected:
                 inner_box = outer_box.box()
 
                 ui.operator("history."+job.id.replace("-", "_"), (" "+job.name),

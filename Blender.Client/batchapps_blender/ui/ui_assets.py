@@ -1,4 +1,4 @@
-#-------------------------------------------------------------------------
+﻿#-------------------------------------------------------------------------
 #
 # Batch Apps Blender Addon
 #
@@ -75,9 +75,9 @@ def uilist_controls(ui, layout):
             derived from the Interface panel. Used for creating ui
             components.
     """
-    batchapps_assets = bpy.context.scene.batchapps_assets
+    batch_assets = bpy.context.scene.batch_assets
 
-    num_assets = len(batchapps_assets.assets)
+    num_assets = len(batch_assets.assets)
     num_display = "Displaying {0} assets".format(num_assets)
 
     ui.label(num_display, layout.row(align=True), align='CENTER')
@@ -87,7 +87,7 @@ def uilist_controls(ui, layout):
     ui.operator("assets.refresh", "Reset", div, "FILE_REFRESH")
 
     div = row.split()
-    active = any(a.upload_checkbox for a in batchapps_assets.assets)
+    active = any(a.upload_checkbox for a in batch_assets.assets)
     ui.operator('assets.upload', "Upload", div, "MOVE_UP_VEC", active=active)
 
     div = row.split()
@@ -110,7 +110,7 @@ def display_uilist(ui, layout):
             components.
     """
 
-    batchapps_assets = bpy.context.scene.batchapps_assets
+    batch_assets = bpy.context.scene.batch_assets
     outerBox = layout.box()
     row = outerBox.row()
 
@@ -119,12 +119,12 @@ def display_uilist(ui, layout):
 
     outerBox.template_list("AssetListUI",
                            "",
-                           batchapps_assets,
+                           batch_assets,
                            "assets",
-                           batchapps_assets,
+                           batch_assets,
                            "index")
 
-    if len(batchapps_assets.assets) > 0:
+    if len(batch_assets.assets) > 0:
         display_details(ui, outerBox)
 
 
@@ -139,12 +139,12 @@ def display_details(ui, outerBox):
             derived from the Interface panel. Used for creating ui
             components. In this case the box the details are listed within.
     """
-    batchapps_assets = bpy.context.scene.batchapps_assets
+    batch_assets = bpy.context.scene.batch_assets
     col = outerBox.column(align=True)
     
-    if batchapps_assets.index < len(batchapps_assets.assets):
+    if batch_assets.index < len(batch_assets.assets):
 
-        selected = batchapps_assets.assets[batchapps_assets.index]
+        selected = batch_assets.assets[batch_assets.index]
         uploaded = "Uploaded" if selected.upload_check else "Not Uploaded"
 
         ui.label("Asset: {0}".format(selected.name), col)

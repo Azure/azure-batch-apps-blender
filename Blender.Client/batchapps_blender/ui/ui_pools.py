@@ -1,4 +1,4 @@
-#-------------------------------------------------------------------------
+﻿#-------------------------------------------------------------------------
 #
 # Batch Apps Blender Addon
 #
@@ -80,17 +80,17 @@ def display_pools(ui, layout):
             components.
 
     """
-    batchapps_pools = bpy.context.scene.batchapps_pools
+    batch_pools = bpy.context.scene.batch_pools
     icons_right = {True: 'DISCLOSURE_TRI_RIGHT_VEC', False: 'TRIA_RIGHT'}
     icons_down = {True: 'DISCLOSURE_TRI_DOWN_VEC', False: 'TRIA_DOWN'}
 
-    if not batchapps_pools.pools:
+    if not batch_pools.pools:
         ui.label("No pools found", layout)
         
     else:
-        for index, pool in enumerate(batchapps_pools.pools):
+        for index, pool in enumerate(batch_pools.pools):
 
-            if index == batchapps_pools.selected:
+            if index == batch_pools.selected:
 
                 inner_box = layout.box()
                 ui.operator("pools."+pool.id.replace("-", "_"), "Hide details",
@@ -114,7 +114,7 @@ def pools(ui, layout):
             components.
 
     """
-    batchapps_pools = bpy.context.scene.batchapps_pools
+    batch_pools = bpy.context.scene.batch_pools
     ui.operator("pools.create", "Create New Pool", layout)
     ui.label("", layout)
 
@@ -136,12 +136,12 @@ def create(ui, layout):
             components.
 
     """
-    batchapps_pools = bpy.context.scene.batchapps_pools
+    batch_pools = bpy.context.scene.batch_pools
     ui.operator("pools.create", "Create New Pool", layout.row())
 
     box = layout.box()
     ui.label("New Pool", box)
-    ui.prop(batchapps_pools, "pool_size", box, "Pool Size")
+    ui.prop(batch_pools, "pool_size", box, "Pool Size")
     ui.operator("pools.start", "Start Pool", box)
 
     ui.label("", layout)

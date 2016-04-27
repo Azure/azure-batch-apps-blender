@@ -26,12 +26,14 @@
 #
 #--------------------------------------------------------------------------
 
-import logging
+import datetime
+import os
 import sys
 
 import bpy
+import isodate
 
-_LOG = logging.getLogger(__name__)
+from azure.common import AzureHttpError
 
 class BatchOps(object):
     """
@@ -52,25 +54,24 @@ class BatchOps(object):
         :Returns:
             - Blender-specific value {'FINISHED'} to indicate the operator has
               completed its action.
-            - If a :class:`batchapps.exceptions.SessionExpiredException` is
-              raised, returns {'CANCELLED'}.
+            - If an exception is raised, returns {'CANCELLED'}.
         """
         session = bpy.context.scene.batch_session
 
         try:
             return func(*args, **kwargs)
 
-        except Exception: #TODO: Specify exceptopn
-            _LOG.error(
-                "Warning: Session Expired - please log back in again.")
+        #except Exception: #TODO: Specify exceptopn
+        #    session.log.error(
+        #        "Warning: Session Expired - please log back in again.")
 
-            session.page = "LOGIN"
-            session.redraw()
-            return {'CANCELLED'}
+        #    session.page = "LOGIN"
+        #    session.redraw()
+        #    return {'CANCELLED'}
 
         except Exception as exp:
             session.page = "ERROR"
-            _LOG.error("Error occurred: {0}".format(exp))
+            session.log.error("Error occurred: {0}".format(exp))
             session.redraw()
             return {'CANCELLED'}
 
@@ -91,27 +92,27 @@ class BatchOps(object):
 
         :Returns:
             - The ID name of the registered operator with the
-              prefix ``batchapps_``.
+              prefix ``batch_``.
 
         """
-        name = "batchapps_" + str(name)
+        name = "batch_" + str(name)
         op_spec = {"bl_idname": name, "bl_label": label}
 
         if execute:
             def op_execute(self, context):
-                return BatchAppsOps.session(execute, self, context)
+                return BatchOps.session(execute, self, context)
 
             op_spec["execute"] = op_execute
 
         if modal:
             def op_modal(self, context, event):
-                return BatchAppsOps.session(modal, self, context, event)
+                return BatchOps.session(modal, self, context, event)
 
             op_spec["modal"] = op_modal
 
         if invoke:
             def op_invoke(self, context, event):
-                return BatchAppsOps.session(invoke, self, context, event)
+                return BatchOps.session(invoke, self, context, event)
 
             op_spec["invoke"] = op_invoke
 
@@ -143,7 +144,7 @@ class BatchOps(object):
 
         :Returns:
             - The ID name of the registered operator with the
-              prefix ``batchapps_``.
+              prefix ``batch_``.
 
         """
         kwargs.update({'enabled':bpy.props.BoolProperty(default=False)})
@@ -155,3 +156,46 @@ class BatchOps(object):
 
         return BatchOps.register(name, label, op_execute, modal,
                                      invoke, **kwargs)
+
+
+class BatchAsset(object):
+
+    def __init__(self, file_path, client):
+        self._client = client
+        path = os.path.realpath(bpy.path.abspath(file_path))
+        self.path = os.path.normpath(path)
+        self.name = os.path.basename(self.path)
+        self.storage_ref = {
+            'key': 'last-modified',
+            'value': self.get_last_modified().isoformat()
+            }
+
+    def is_uploaded(self):
+        container = bpy.context.user_preferences.addons[__package__].preferences.storage_container
+        try:
+            bpy.context.scene.batch_session.log.info("gathering properties")
+            props = self._client.get_blob_properties(container, self.name)
+            bpy.context.scene.batch_session.log.info("retrieved")
+            print(props.metadata)
+        except AzureHttpError:
+            return False
+        last_uploaded = props.metadata.get('value')
+        print(last_uploaded)
+        if not last_uploaded:
+            print("done")
+            return False
+        elif isodate.parse_datetime(last_uploaded) < self.get_last_modified():
+            print("not up to date")
+            return False
+        print("uploaded")
+        return True
+
+    def get_last_modified(self):
+        mod = os.path.getmtime(self.path)
+        return datetime.datetime.fromtimestamp(mod)
+
+    def upload(self):
+        container = bpy.context.user_preferences.addons[__package__].preferences.storage_container
+        self._client.create_blob_from_path(container, self.name, self.path, metadata=self.storage_ref)
+        
+
