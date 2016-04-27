@@ -138,7 +138,7 @@ class SubmissionDisplayProps(bpy.types.PropertyGroup):
 
     pool_size = bpy.props.IntProperty(
         description="Number of instances in pool",
-        default=3,
+        default=1,
         min=3,
         max=20)
 

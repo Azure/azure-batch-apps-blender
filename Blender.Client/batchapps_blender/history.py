@@ -35,6 +35,8 @@ from batched_blender.utils import BatchOps
 from batched_blender.ui import ui_history
 from batched_blender.props import props_history
 
+import azure.batch as batch
+
 
 class BatchHistory(object):
     """
@@ -91,24 +93,27 @@ class BatchHistory(object):
         ops.append(BatchOps.register("history.page",
                                          "Job history",
                                          self._history))
-        ops.append(BatchOps.register("history.first",
-                                         "Beginning",
-                                         self._first))
-        ops.append(BatchOps.register("history.last",
-                                         "End",
-                                         self._last))
-        ops.append(BatchOps.register("history.more",
-                                         "Next",
-                                         self._more))
-        ops.append(BatchOps.register("history.less",
-                                         "Previous",
-                                         self._less))
+        #ops.append(BatchOps.register("history.first",
+        #                                 "Beginning",
+        #                                 self._first))
+        #ops.append(BatchOps.register("history.last",
+        #                                 "End",
+        #                                 self._last))
+        #ops.append(BatchOps.register("history.more",
+        #                                 "Next",
+        #                                 self._more))
+        #ops.append(BatchOps.register("history.less",
+        #                                 "Previous",
+        #                                 self._less))
         ops.append(BatchOps.register("history.refresh",
                                          "Refresh",
                                          self._refresh))
         ops.append(BatchOps.register("history.cancel",
                                          "Cancel job",
                                          self._cancel))
+        ops.append(BatchOps.register("history.delete",
+                                         "Delete job",
+                                         self._delete))
         ops.append(BatchOps.register("history.loading",
                                          "Loading job history",
                                          modal=self._loading_modal,
@@ -203,8 +208,8 @@ class BatchHistory(object):
         """
         self.props.display = context.scene.batch_history
         self.props.display.selected = -1
-        self.props.display.index = 0
-        self.props.display.total_count = 0
+        #self.props.display.index = 0
+        #self.props.display.total_count = 0
 
         history_thread = lambda: BatchOps.session(self.get_job_list)
         self.props.thread = threading.Thread(name="HistoryThread",
@@ -217,93 +222,93 @@ class BatchHistory(object):
 
         return {'FINISHED'}
 
-    def _first(self, op, context, *args):
-        """
-        The execute method for the history.first operator.
-        Resets the job display paging index to 0 (to display the first jobs
-        in the list) and re-loads the accompanying job data.
+    #def _first(self, op, context, *args):
+    #    """
+    #    The execute method for the history.first operator.
+    #    Resets the job display paging index to 0 (to display the first jobs
+    #    in the list) and re-loads the accompanying job data.
 
-        :Args:
-            - op (:class:`bpy.types.Operator`): An instance of the current
-              operator class.
-            - context (:class:`bpy.types.Context`): The current blender
-              context.
+    #    :Args:
+    #        - op (:class:`bpy.types.Operator`): An instance of the current
+    #          operator class.
+    #        - context (:class:`bpy.types.Context`): The current blender
+    #          context.
 
-        :Returns:
-            - Blender-specific value {'FINISHED'} to indicate the operator has
-              completed its action.
-        """
-        self.props.display.index = 0
-        self.get_job_list()
-        return {'FINISHED'}
+    #    :Returns:
+    #        - Blender-specific value {'FINISHED'} to indicate the operator has
+    #          completed its action.
+    #    """
+    #    #self.props.display.index = 0
+    #    self.get_job_list()
+    #    return {'FINISHED'}
 
-    def _last(self, op, context, *args):
-        """
-        The execute method for the history.last operator.
-        Resets the job display paging controls to display the last jobs
-        in the list and re-loads the accompanying job data.
+    #def _last(self, op, context, *args):
+    #    """
+    #    The execute method for the history.last operator.
+    #    Resets the job display paging controls to display the last jobs
+    #    in the list and re-loads the accompanying job data.
 
-        :Args:
-            - op (:class:`bpy.types.Operator`): An instance of the current
-              operator class.
-            - context (:class:`bpy.types.Context`): The current blender
-              context.
+    #    :Args:
+    #        - op (:class:`bpy.types.Operator`): An instance of the current
+    #          operator class.
+    #        - context (:class:`bpy.types.Context`): The current blender
+    #          context.
 
-        :Returns:
-            - Blender-specific value {'FINISHED'} to indicate the operator has
-              completed its action.
-        """
-        settings = self.props.display
+    #    :Returns:
+    #        - Blender-specific value {'FINISHED'} to indicate the operator has
+    #          completed its action.
+    #    """
+    #    settings = self.props.display
 
-        if (settings.total_count % settings.per_call) == 0:
-            settings.index = settings.total_count - settings.per_call
+    #    if (settings.total_count % settings.per_call) == 0:
+    #        settings.index = settings.total_count - settings.per_call
 
-        else:
-            div = settings.per_call - (settings.total_count % settings.per_call)
-            settings.index = settings.total_count - settings.per_call + div
+    #    else:
+    #        div = settings.per_call - (settings.total_count % settings.per_call)
+    #        settings.index = settings.total_count - settings.per_call + div
         
-        self.get_job_list()
-        return {'FINISHED'}
+    #    self.get_job_list()
+    #    return {'FINISHED'}
 
-    def _more(self, op, context, *args):
-        """
-        The execute method for the history.more operator.
-        Resets the job display paging controls to display the subsequent jobs
-        in the list and re-loads the accompanying job data.
+    #def _more(self, op, context, *args):
+    #    """
+    #    The execute method for the history.more operator.
+    #    Resets the job display paging controls to display the subsequent jobs
+    #    in the list and re-loads the accompanying job data.
 
-        :Args:
-            - op (:class:`bpy.types.Operator`): An instance of the current
-              operator class.
-            - context (:class:`bpy.types.Context`): The current blender
-              context.
+    #    :Args:
+    #        - op (:class:`bpy.types.Operator`): An instance of the current
+    #          operator class.
+    #        - context (:class:`bpy.types.Context`): The current blender
+    #          context.
 
-        :Returns:
-            - Blender-specific value {'FINISHED'} to indicate the operator has
-              completed its action.
-        """
-        self.props.display.index = self.props.display.index + self.props.display.per_call
-        self.get_job_list()
-        return {'FINISHED'}
+    #    :Returns:
+    #        - Blender-specific value {'FINISHED'} to indicate the operator has
+    #          completed its action.
+    #    """
+    #    self.props.display.index = self.props.display.index + self.props.display.per_call
+    #    self.get_job_list()
+    #    return {'FINISHED'}
 
-    def _less(self, op, context, *args):
-        """
-        The execute method for the history.less operator.
-        Resets the job display paging controls to display the previous jobs
-        in the list and re-loads the accompanying job data.
+    #def _less(self, op, context, *args):
+    #    """
+    #    The execute method for the history.less operator.
+    #    Resets the job display paging controls to display the previous jobs
+    #    in the list and re-loads the accompanying job data.
 
-        :Args:
-            - op (:class:`bpy.types.Operator`): An instance of the current
-              operator class.
-            - context (:class:`bpy.types.Context`): The current blender
-              context.
+    #    :Args:
+    #        - op (:class:`bpy.types.Operator`): An instance of the current
+    #          operator class.
+    #        - context (:class:`bpy.types.Context`): The current blender
+    #          context.
 
-        :Returns:
-            - Blender-specific value {'FINISHED'} to indicate the operator has
-              completed its action.
-        """
-        self.props.display.index = self.props.display.index - self.props.display.per_call
-        self.get_job_list()
-        return {'FINISHED'}
+    #    :Returns:
+    #        - Blender-specific value {'FINISHED'} to indicate the operator has
+    #          completed its action.
+    #    """
+    #    self.props.display.index = self.props.display.index - self.props.display.per_call
+    #    self.get_job_list()
+    #    return {'FINISHED'}
 
     def _refresh(self, op, context, *args):
         """
@@ -321,6 +326,18 @@ class BatchHistory(object):
               completed its action.
         """
         self.get_job_list()
+        return {'FINISHED'}
+
+    def _delete(self, op, context, *args):
+        job = self.get_selected_job()
+        context.scene.batch_session.log.debug(
+            "Selected job {0}".format(job.id))
+
+        self.batch.job.delete(job.id)
+        #job.update()
+        context.scene.batch_session.log.info(
+            "Deleted with ID: {0}".format(job.id))
+
         return {'FINISHED'}
 
     def _cancel(self, op, context, *args):
@@ -342,8 +359,8 @@ class BatchHistory(object):
         context.scene.batch_session.log.debug(
             "Selected job {0}".format(job.id))
 
-        job.cancel()
-        job.update()
+        self.batch.job.terminate(job.id)
+        #job.update()
         context.scene.batch_session.log.info(
             "Cancelled with ID: {0}".format(job.id))
 
@@ -372,28 +389,25 @@ class BatchHistory(object):
         self.props.display.jobs.clear()
 
         bpy.context.scene.batch_session.log.debug(
-            "Getting job data: index {0}, total {1}, percall {2}".format(
-                self.props.display.index,
-                self.props.display.total_count,
-                self.props.display.per_call))
+            "Getting job data")
 
-
-        latest_jobs = self.batch.get_jobs(
-            index=self.props.display.index,
-            per_call=self.props.display.per_call)
+        latest_jobs = self.batch.job.list(batch.models.JobListOptions(max_results=self.props.display.per_call))
+        latest_jobs = list(latest_jobs)
+        #latest_jobs = self.batch.get_jobs(
+        #    index=self.props.display.index,
+        #    per_call=self.props.display.per_call)
 
         for job in latest_jobs:
             self.props.job_list.append(job)
             self.props.display.add_job(job)
 
-        self.props.display.total_count = len(self.batch)
+        #self.props.display.total_count = len(self.batch)
         for index, job in enumerate(self.props.display.jobs):
             self.register_job(job, index)
 
         bpy.context.scene.batch_session.log.info(
-            "Retrieved {0} of {1} job "
-            "listings.".format(len(latest_jobs),
-                               self.props.display.total_count))
+            "Retrieved {0} job "
+            "listings.".format(len(latest_jobs)))
 
         bpy.context.scene.batch_session.page = "HISTORY"
         bpy.context.scene.batch_session.redraw()
@@ -410,7 +424,7 @@ class BatchHistory(object):
         :Returns:
             - The newly registered operator name (str).
         """
-        name = "history.{0}".format(job.id.replace("-", "_"))
+        name = "history.{0}".format(job.id.replace("-", "_").lower())
         label = "Job: {0}".format(job.name)
         index_prop = bpy.props.IntProperty(default=index)
 

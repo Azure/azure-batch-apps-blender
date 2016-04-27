@@ -57,68 +57,62 @@ def details(ui, layout, job):
         - job (:class:`.HistoryDetails`): The selected job to display.
 
     """
-    if job.status in ["InProgress", "Error", "Cancelled"]:
-        status = """Status: {0} - {1}% complete""".format(
-            job.status, job.percent)
-
-    else:
-        status = "Status: {0}".format(job.status)
-
-    ui.label(status, layout)
+    ui.label("Status: {0}".format(job.status), layout)
     ui.label("Submitted: {0}".format(job.timestamp), layout)
     ui.label("ID: {0}".format(job.id), layout)
-    ui.label("Type: {0}".format(job.type), layout)
-    ui.label("Number of Tasks: {0}".format(job.tasks), layout)
+    #ui.label("Type: {0}".format(job.type), layout)
+    #ui.label("Number of Tasks: {0}".format(job.tasks), layout)
     ui.label("Pool: {0}".format(job.pool_id), layout)
 
-    if job.status.lower() in ["notstarted", "inprogress"]:
+    if job.status.lower() in ["active", "inprogress"]:
         ui.operator("history.cancel", "Cancel Job", layout)
+    ui.operator("history.delete", "Delete Job", layout)
 
-def page_controls(ui, layout, num_jobs):
-    """
-    Display the job history list paging controls.
+#def page_controls(ui, layout, num_jobs):
+#    """
+#    Display the job history list paging controls.
 
-    :Args:
-        - ui (blender :class:`.Interface`): The instance of the Interface
-            panel class.
-        - layout (blender :class:`bpy.types.UILayout`): The layout object,
-            derived from the Interface panel. Used for creating ui
-            components.
-        - num_jobs (int): The total number of jobs in the users history.
+#    :Args:
+#        - ui (blender :class:`.Interface`): The instance of the Interface
+#            panel class.
+#        - layout (blender :class:`bpy.types.UILayout`): The layout object,
+#            derived from the Interface panel. Used for creating ui
+#            components.
+#        - num_jobs (int): The total number of jobs in the users history.
 
-    """
-    history = bpy.context.scene.batch_history
+#    """
+#    history = bpy.context.scene.batch_history
 
-    if history.total_count == 0:
-        start = 0
-        end = 0
+#    if history.total_count == 0:
+#        start = 0
+#        end = 0
 
-    elif history.total_count != 0 and history.index == 0:
-        start = 1
-        end = num_jobs
+#    elif history.total_count != 0 and history.index == 0:
+#        start = 1
+#        end = num_jobs
 
-    else:
-        start = history.index + 1
-        end = (start+num_jobs)-1
+#    else:
+#        start = history.index + 1
+#        end = (start+num_jobs)-1
 
-    job_display = "Displaying jobs {start}-{end} of {total}".format(
-        start=start, end=end, total=history.total_count)
+#    job_display = "Displaying jobs {start}-{end} of {total}".format(
+#        start=start, end=end, total=history.total_count)
 
-    ui.label(job_display, layout.row(align=True), "CENTER")
+#    ui.label(job_display, layout.row(align=True), "CENTER")
 
-    split = layout.split(percentage=0.333)
-    row = split.row(align=True)
-    ui.operator("history.first", "", row, "REW", "LEFT", (history.index != 0))
-    ui.operator("history.less", "", row, "PREV_KEYFRAME",
-                "LEFT", (history.index != 0))
+#    split = layout.split(percentage=0.333)
+#    row = split.row(align=True)
+#    ui.operator("history.first", "", row, "REW", "LEFT", (history.index != 0))
+#    ui.operator("history.less", "", row, "PREV_KEYFRAME",
+#                "LEFT", (history.index != 0))
 
-    row = split.row(align=True)
-    ui.operator("history.refresh", "Refresh", row, "FILE_REFRESH", "CENTER")
+#    row = split.row(align=True)
+#    ui.operator("history.refresh", "Refresh", row, "FILE_REFRESH", "CENTER")
 
-    row = split.row(align=True)
-    enabled = (history.index + num_jobs) != history.total_count
-    ui.operator("history.more", "", row, "NEXT_KEYFRAME", "RIGHT", enabled)
-    ui.operator("history.last", "", row, "FF", "RIGHT", enabled)
+#    row = split.row(align=True)
+#    enabled = (history.index + num_jobs) != history.total_count
+#    ui.operator("history.more", "", row, "NEXT_KEYFRAME", "RIGHT", enabled)
+#    ui.operator("history.last", "", row, "FF", "RIGHT", enabled)
 
 
 def history(ui, layout):
@@ -135,7 +129,7 @@ def history(ui, layout):
     """
     jobs = bpy.context.scene.batch_history.jobs
 
-    page_controls(ui, layout, len(jobs))
+    #page_controls(ui, layout, len(jobs))
     outer_box = layout.box()
 
     if not jobs:
@@ -147,12 +141,12 @@ def history(ui, layout):
             if index == bpy.context.scene.batch_history.selected:
                 inner_box = outer_box.box()
 
-                ui.operator("history."+job.id.replace("-", "_"), (" "+job.name),
+                ui.operator("history."+job.id.replace("-", "_").lower(), (" "+job.name),
                             inner_box, status_icon(job))
                 details(ui, inner_box, job)
 
             else:
-                ui.operator("history."+job.id.replace("-", "_"), (" "+job.name),
+                ui.operator("history."+job.id.replace("-", "_").lower(), (" "+job.name),
                             outer_box, status_icon(job))
 
     ui.label("", layout)
@@ -170,7 +164,7 @@ def loading(ui, layout):
             components.
 
     """
-    page_controls(ui, layout, 0)
+    #page_controls(ui, layout, 0)
     outer_box = layout.box()
     ui.label("Loading...", outer_box.row(align=True), "CENTER")
 

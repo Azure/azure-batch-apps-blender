@@ -26,14 +26,17 @@
 #
 #--------------------------------------------------------------------------
 
-import bpy
+import datetime
+import threading
 import os
 
-import threading
+import bpy
 
 from batched_blender.utils import BatchOps
 from batched_blender.ui import ui_pools
 from batched_blender.props import props_pools
+
+import azure.batch as batch
 
 
 class BatchPools(object):
@@ -143,7 +146,10 @@ class BatchPools(object):
 
         context.scene.batch_session.log.debug("Getting pool data.")
 
-        self.props.pools = [p for p in self.batch.pool.list()]
+        ps = self.batch.pool.list()
+        context.scene.batch_session.log.debug("Loading list")
+        pl = [p for p in ps]
+        self.props.pools = pl
         context.scene.batch_session.log.info(
             "Retrieved {0} pool references.".format(len(self.props.pools)))
 
@@ -172,11 +178,38 @@ class BatchPools(object):
             - Blender-specific value {'FINISHED'} to indicate the operator has
               completed its action.
         """
-        #new_pool = self.batch.create(
-        #    target_size=self.props.display.pool_size)
+        pool_name = bpy.path.clean_name("Blender_Pool_{}".format(datetime.datetime.now().isoformat()))
+        context.scene.batch_session.log.info("creating pool {}".format(pool_name))
+        commands = [
+            "sudo apt-get update",
+            "sudo apt-get install software-properties-common",
+            "sudo add-apt-repository -y ppa:thomas-schiex/blender",
+            "sudo apt-get update",
+            "sudo apt-get -q -y install blender",
+        ]
+        pool_config = batch.models.VirtualMachineConfiguration(
+            image_reference=batch.models.ImageReference(
+                'Canonical',
+                'UbuntuServer',
+                '14.04.4-LTS',
+                'latest'
+            ),
+            node_agent_sku_id='batch.node.ubuntu 14.04'
+        )
+        pool = batch.models.PoolAddParameter(
+            pool_name,
+            'BASIC_A1',
+            virtual_machine_configuration=pool_config,
+            target_dedicated=self.props.display.pool_size,
+            start_task=batch.models.StartTask(
+                command_line="/bin/bash -c 'set -e; set -o pipefail; {}; wait'".format('; '.join(commands)),
+                run_elevated=True,
+                wait_for_success=True),
+        )
+        self.batch.pool.add(pool)
 
-        #context.scene.batch_session.log.info(
-        #    "Started new pool with ID: {0}".format(new_pool.id))
+        context.scene.batch_session.log.info(
+            "Started new pool with ID: {0}".format(pool_name))
 
         return bpy.ops.batch_pools.page()
 
@@ -200,7 +233,7 @@ class BatchPools(object):
         context.scene.batch_session.log.debug(
             "Selected pool {0}".format(pool.id))
 
-        pool.delete()
+        self.batch.pool.delete(pool.id)
         context.scene.batch_session.log.info(
             "Deleted pool with ID: {0}".format(pool.id))
 
@@ -248,7 +281,7 @@ class BatchPools(object):
         :Returns:
             - The newly registered operator name (str).
         """
-        name = "pools.{0}".format(pool.id.replace("-", "_"))
+        name = "pools.{0}".format(pool.id.replace("-", "_").lower())
         label = "Pool: {0}".format(pool.id)
         index_prop = bpy.props.IntProperty(default=index)
 

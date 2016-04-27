@@ -93,13 +93,13 @@ def display_pools(ui, layout):
             if index == batch_pools.selected:
 
                 inner_box = layout.box()
-                ui.operator("pools."+pool.id.replace("-", "_"), "Hide details",
+                ui.operator("pools."+pool.id.replace("-", "_").lower(), "Hide details",
                             inner_box, icons_down[pool.auto])
 
                 details(ui, inner_box, pool)
 
             else:
-                ui.operator("pools."+pool.id.replace("-", "_"), (' '+pool.id),
+                ui.operator("pools."+pool.id.replace("-", "_").lower(), (' '+pool.id),
                             layout, icons_right[pool.auto])
 
 def pools(ui, layout):

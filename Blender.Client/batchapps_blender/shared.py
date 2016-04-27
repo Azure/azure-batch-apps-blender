@@ -189,7 +189,7 @@ class BatchSettings(object):
             - Blender-specific value {'FINISHED'} to indicate the operator has
               completed its action.
         """
-        webbrowser.open("TODO", 2, True)
+        webbrowser.open("https://ms.portal.azure.com/", 2, True)
         return {'FINISHED'}
 
     def display(self, ui, layout):

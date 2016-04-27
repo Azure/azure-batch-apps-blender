@@ -58,8 +58,8 @@ class BatchOps(object):
         """
         session = bpy.context.scene.batch_session
 
-        try:
-            return func(*args, **kwargs)
+        #try:
+        return func(*args, **kwargs)
 
         #except Exception: #TODO: Specify exceptopn
         #    session.log.error(
@@ -69,11 +69,11 @@ class BatchOps(object):
         #    session.redraw()
         #    return {'CANCELLED'}
 
-        except Exception as exp:
-            session.page = "ERROR"
-            session.log.error("Error occurred: {0}".format(exp))
-            session.redraw()
-            return {'CANCELLED'}
+        #except Exception as exp:
+        #    session.page = "ERROR"
+        #    session.log.error("Error occurred: {0}".format(exp))
+        #    session.redraw()
+        #    return {'CANCELLED'}
 
     @staticmethod
     def register(name, label, execute=None, modal=None, invoke=None, **kwargs):

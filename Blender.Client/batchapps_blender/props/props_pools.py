@@ -103,7 +103,7 @@ class PoolDisplayProps(bpy.types.PropertyGroup):
     pool_size = bpy.props.IntProperty(
         description="Number of instances in new pool",
         default=3,
-        min=3,
+        min=1,
         max=20)
 
     pools = bpy.props.CollectionProperty(
@@ -120,12 +120,12 @@ class PoolDisplayProps(bpy.types.PropertyGroup):
 
         self.pools.add()
         entry = self.pools[-1]
-        entry.id = pool.id
-        entry.auto = False #pool.auto
+        entry.auto = pool.id.startswith('Blender_auto_pool_')
+        entry.id = pool.display_name if entry.auto else pool.id
         entry.created = format_date(pool)
         entry.target = pool.target_dedicated
         entry.current = pool.current_dedicated
-        entry.state = pool.allocation_state
+        entry.state = pool.allocation_state.value
         entry.queue = 0 #len(pool.jobs)
 
 class PoolsProps(object):

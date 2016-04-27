@@ -41,7 +41,7 @@ def format_date(job):
           an empty string.
     """
     try:
-        datelist = job.time_submitted.split('T')
+        datelist = job.creation_time.isoformat().split('T')
         datelist[1] = datelist[1].split('.')[0]
         return ' '.join(datelist)
 
@@ -62,9 +62,9 @@ class HistoryDetails(bpy.types.PropertyGroup):
         description="Job Name",
         default="")
 
-    type = bpy.props.StringProperty(
-        description="Job Type",
-        default="")
+    #type = bpy.props.StringProperty(
+    #    description="Job Type",
+    #    default="")
 
     status = bpy.props.StringProperty(
         description="Job Status",
@@ -74,17 +74,17 @@ class HistoryDetails(bpy.types.PropertyGroup):
         description="Time Submitted",
         default="")
 
-    percent = bpy.props.IntProperty(
-        description="Percent Complete",
-        default=0)
+    #percent = bpy.props.IntProperty(
+    #    description="Percent Complete",
+    #    default=0)
 
     pool_id = bpy.props.StringProperty(
         description="Job Pool ID",
         default="Unknown")
 
-    tasks = bpy.props.IntProperty(
-        description="Number of Tasks",
-        default=0)
+    #tasks = bpy.props.IntProperty(
+    #    description="Number of Tasks",
+    #    default=0)
 
 
 class HistoryDisplayProps(bpy.types.PropertyGroup):
@@ -103,26 +103,26 @@ class HistoryDisplayProps(bpy.types.PropertyGroup):
 
     per_call = bpy.props.IntProperty(
         description="Jobs Per Call",
-        default=10,
+        default=5,
         min=1,
         soft_min=1,
         max=50,
         soft_max=50)
 
-    total_count = bpy.props.IntProperty(
-        description="Total Job Count",
-        default=0)
+    #total_count = bpy.props.IntProperty(
+    #    description="Total Job Count",
+    #    default=0)
 
-    index = bpy.props.IntProperty(
-        description="Job display index",
-        default=0)
+    #index = bpy.props.IntProperty(
+    #    description="Job display index",
+    #    default=0)
 
     icons = {
-        'inprogress': 'PREVIEW_RANGE',
-        'complete': 'FILE_TICK',
-        'cancelled': 'CANCEL',
-        'error': 'ERROR',
-        'notstarted': 'TIME'
+        'active': 'PREVIEW_RANGE',
+        'completed': 'FILE_TICK',
+        'terminating': 'CANCEL',
+        'disabled': 'ERROR',
+        'enabling': 'TIME'
         }
 
     def add_job(self, job):
@@ -136,15 +136,15 @@ class HistoryDisplayProps(bpy.types.PropertyGroup):
         self.jobs.add()
         entry = self.jobs[-1]
         entry.id = job.id
-        entry.name = job.name
-        entry.type = job.type
-        entry.status = job.status
-        entry.tasks = job.number_tasks
-        entry.percent = job.percentage if job.percentage else 0
+        entry.name = job.display_name
+        #entry.type = job.type
+        entry.status = job.state.value
+        #entry.tasks = job.number_tasks
+        #entry.percent = job.percentage if job.percentage else 0
         entry.timestamp = format_date(job)
 
-        if job.pool_id:
-            entry.pool_id = job.pool_id
+        if job.pool_info.pool_id:
+            entry.pool_id = job.pool_info.pool_id
 
 
 class HistoryProps(object):
