@@ -50,13 +50,13 @@ def format_date(pool):
           an empty string.
     """
     try:
-        datelist = pool.created.split('T')
+        datelist = pool.creation_time.isoformat().split('T')
         datelist[1] = datelist[1].split('.')[0]
         return ' '.join(datelist)
 
     except:
         bpy.context.scene.batch_session.log.debug(
-            "Couldn't format date {0}.".format(pool.created))
+            "Couldn't format date {0}.".format(pool.creation_time.isoformat()))
         return ""
 
 class PoolDetails(bpy.types.PropertyGroup):
@@ -121,12 +121,12 @@ class PoolDisplayProps(bpy.types.PropertyGroup):
         self.pools.add()
         entry = self.pools[-1]
         entry.id = pool.id
-        entry.auto = pool.auto
+        entry.auto = False #pool.auto
         entry.created = format_date(pool)
-        entry.target = pool.target_size
-        entry.current = pool.current_size
-        entry.state = pool.state
-        entry.queue = len(pool.jobs)
+        entry.target = pool.target_dedicated
+        entry.current = pool.current_dedicated
+        entry.state = pool.allocation_state
+        entry.queue = 0 #len(pool.jobs)
 
 class PoolsProps(object):
     """

@@ -143,7 +143,7 @@ class BatchPools(object):
 
         context.scene.batch_session.log.debug("Getting pool data.")
 
-        self.props.pools = self.batch.get_pools()
+        self.props.pools = [p for p in self.batch.pool.list()]
         context.scene.batch_session.log.info(
             "Retrieved {0} pool references.".format(len(self.props.pools)))
 
@@ -172,11 +172,11 @@ class BatchPools(object):
             - Blender-specific value {'FINISHED'} to indicate the operator has
               completed its action.
         """
-        new_pool = self.batch.create(
-            target_size=self.props.display.pool_size)
+        #new_pool = self.batch.create(
+        #    target_size=self.props.display.pool_size)
 
-        context.scene.batch_session.log.info(
-            "Started new pool with ID: {0}".format(new_pool.id))
+        #context.scene.batch_session.log.info(
+        #    "Started new pool with ID: {0}".format(new_pool.id))
 
         return bpy.ops.batch_pools.page()
 

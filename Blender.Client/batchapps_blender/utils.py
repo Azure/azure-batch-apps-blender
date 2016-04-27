@@ -161,14 +161,22 @@ class BatchOps(object):
 class BatchAsset(object):
 
     def __init__(self, file_path, client):
-        self._client = client
+        
         path = os.path.realpath(bpy.path.abspath(file_path))
         self.path = os.path.normpath(path)
         self.name = os.path.basename(self.path)
+        
+        self._client = client
         self.storage_ref = {
             'key': 'last-modified',
             'value': self.get_last_modified().isoformat()
             }
+
+    def _parse(self, timestamp):
+        timestamp, _, micro= timestamp.partition(".")
+        timestamp = datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S")
+        micro = int(micro.rstrip("Z"), 10)
+        return timestamp + datetime.timedelta(microseconds=micro)
 
     def is_uploaded(self):
         container = bpy.context.user_preferences.addons[__package__].preferences.storage_container
@@ -184,7 +192,9 @@ class BatchAsset(object):
         if not last_uploaded:
             print("done")
             return False
-        elif isodate.parse_datetime(last_uploaded) < self.get_last_modified():
+        print(type(last_uploaded))
+        #print(isodate.parse_datetime(last_uploaded))
+        if self._parse(last_uploaded) < self.get_last_modified():
             print("not up to date")
             return False
         print("uploaded")
