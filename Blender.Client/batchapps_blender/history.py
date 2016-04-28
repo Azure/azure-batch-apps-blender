@@ -108,12 +108,15 @@ class BatchHistory(object):
         ops.append(BatchOps.register("history.refresh",
                                          "Refresh",
                                          self._refresh))
-        ops.append(BatchOps.register("history.cancel",
-                                         "Cancel job",
-                                         self._cancel))
+        ops.append(BatchOps.register("history.end",
+                                         "Finish job",
+                                         self._end))
         ops.append(BatchOps.register("history.delete",
                                          "Delete job",
                                          self._delete))
+        ops.append(BatchOps.register("history.import",
+                                         "Import Sequence",
+                                         self._import))
         ops.append(BatchOps.register("history.loading",
                                          "Loading job history",
                                          modal=self._loading_modal,
@@ -328,6 +331,42 @@ class BatchHistory(object):
         self.get_job_list()
         return {'FINISHED'}
 
+    def _import(self, op, context, *args):
+        job = self.get_selected_job()
+        context.scene.batch_session.log.debug(
+            "Selected job {0}".format(job.id))
+        tasks = self.batch.task.list(job.id)
+        prefix = job.display_name
+        temp_dir = context.user_preferences.filepaths.temporary_directory
+        output_dir = os.path.join(temp_dir, job.id)
+        if not os.path.exists(output_dir):
+            os.mkdir(output_dir)
+        downloaded = []
+        print("Output directory", output_dir)
+        for t in tasks:
+            files = self.batch.file.list_from_task(job.id, t.id, recursive=True)
+            for f in files:
+                if f.is_directory:
+                    continue
+                if not f.name.startswith('wd/' + prefix):
+                    continue
+                file_name = os.path.join(output_dir, f.name.split('/')[-1])
+                print("Downloading", file_name)
+
+                with open(file_name, 'wb') as handle:
+                    response = self.batch.file.get_from_task(job.id, t.id, f.name)
+                    for data in response:
+                        handle.write(data)
+                downloaded.append(file_name)
+
+        context.scene.sequence_editor_clear()
+        context.scene.sequence_editor_create()
+        for index, file in enumerate(downloaded):
+            context.scene.sequence_editor.sequences.new_image(job.id, filepath=file, channel=1, frame_start=index)
+        return {'FINISHED'}
+
+
+
     def _delete(self, op, context, *args):
         job = self.get_selected_job()
         context.scene.batch_session.log.debug(
@@ -340,7 +379,7 @@ class BatchHistory(object):
 
         return {'FINISHED'}
 
-    def _cancel(self, op, context, *args):
+    def _end(self, op, context, *args):
         """
         The execute method for the history.cancel operator.
         Cancels the currently selected job.
@@ -362,7 +401,7 @@ class BatchHistory(object):
         self.batch.job.terminate(job.id)
         #job.update()
         context.scene.batch_session.log.info(
-            "Cancelled with ID: {0}".format(job.id))
+            "Completed with ID: {0}".format(job.id))
 
         return {'FINISHED'}
 

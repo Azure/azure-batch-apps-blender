@@ -64,8 +64,10 @@ def details(ui, layout, job):
     #ui.label("Number of Tasks: {0}".format(job.tasks), layout)
     ui.label("Pool: {0}".format(job.pool_id), layout)
 
-    if job.status.lower() in ["active", "inprogress"]:
-        ui.operator("history.cancel", "Cancel Job", layout)
+    if job.status.lower() in ["active", "disabled"]:
+        ui.operator("history.import", "Import Sequence", layout)
+        ui.operator("history.end", "Finish Job", layout)
+        
     ui.operator("history.delete", "Delete Job", layout)
 
 #def page_controls(ui, layout, num_jobs):
