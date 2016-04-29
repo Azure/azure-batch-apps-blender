@@ -414,7 +414,7 @@ class BatchSubmission(object):
             if session.page == 'ERROR':
                 raise Exception("Failed to set up assets for job")
 
-        uploading = assets.collection
+        uploading = [a for a in assets.collection if a._exists]
         if bpy.context.scene.batch_assets.temp:
             session.log.debug("Using temp blend file {0}".format(assets.path))
             bpy.ops.wm.save_as_mainfile(filepath=assets.path,

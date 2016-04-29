@@ -438,11 +438,13 @@ class BatchAssets(object):
             session.log.debug("Discovered asset {0}.".format(asset))
             user_file = BatchAsset(asset, self.uploader)
 
-            if user_file and user_file not in self.props.collection:
-                self.props.add_asset(user_file)
+            if (os.path.exists(user_file.path) and 
+                user_file not in self.props.collection and
+                not os.path.isdir(user_file.path)):
+                    self.props.add_asset(user_file)
 
             else:
-                session.log.warning("File {0} either duplicate or does not "
+                session.log.warning("File {0} either duplicate, directory, or does not "
                                 "exist.".format(user_file.name))
         
         if not self.props.temp:

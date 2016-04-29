@@ -167,10 +167,15 @@ class BatchAsset(object):
         self.name = os.path.basename(self.path)
         
         self._client = client
-        self.storage_ref = {
-            'key': 'last-modified',
-            'value': self.get_last_modified().isoformat()
-            }
+        self._exists = os.path.exists(self.path)
+        timestamp = self.get_last_modified()
+        if timestamp:
+            self.storage_ref = {
+                'key': 'last-modified',
+                'value': timestamp.isoformat()
+                }
+        else:
+            self.storage_ref = None
 
     def _parse(self, timestamp):
         timestamp, _, micro= timestamp.partition(".")
@@ -201,11 +206,13 @@ class BatchAsset(object):
         return True
 
     def get_last_modified(self):
-        mod = os.path.getmtime(self.path)
-        return datetime.datetime.fromtimestamp(mod)
+        if self._exists:
+            mod = os.path.getmtime(self.path)
+            return datetime.datetime.fromtimestamp(mod)
 
     def upload(self):
-        container = bpy.context.user_preferences.addons[__package__].preferences.storage_container
-        self._client.create_blob_from_path(container, self.name, self.path, metadata=self.storage_ref)
+        if self._exists and not self.is_uploaded():
+            container = bpy.context.user_preferences.addons[__package__].preferences.storage_container
+            self._client.create_blob_from_path(container, self.name, self.path, metadata=self.storage_ref)
         
 

@@ -121,7 +121,9 @@ class HistoryDisplayProps(bpy.types.PropertyGroup):
         'active': 'PREVIEW_RANGE',
         'completed': 'FILE_TICK',
         'terminating': 'CANCEL',
+        'deleting': 'CANCEL',
         'disabled': 'ERROR',
+        'disabling': 'ERROR',
         'enabling': 'TIME'
         }
 

@@ -352,17 +352,19 @@ class BatchHistory(object):
                     continue
                 file_name = os.path.join(output_dir, f.name.split('/')[-1])
                 print("Downloading", file_name)
-
-                with open(file_name, 'wb') as handle:
-                    response = self.batch.file.get_from_task(job.id, t.id, f.name)
-                    for data in response:
-                        handle.write(data)
+                if not os.path.exists(file_name):
+                    with open(file_name, 'wb') as handle:
+                        response = self.batch.file.get_from_task(job.id, t.id, f.name)
+                        for data in response:
+                            handle.write(data)
                 downloaded.append(file_name)
 
         context.scene.sequence_editor_clear()
         context.scene.sequence_editor_create()
+        frame = context.scene.batch_submission.start_f #TODO: Get proper frame range based on filename
         for index, file in enumerate(downloaded):
-            context.scene.sequence_editor.sequences.new_image(job.id, filepath=file, channel=1, frame_start=index)
+            context.scene.sequence_editor.sequences.new_image(job.id, filepath=file, channel=1, frame_start=frame)
+            frame += 1
         return {'FINISHED'}
 
 
