@@ -35,6 +35,7 @@ import os
 import string
 import threading
 import time
+import uuid
 
 from batched_blender.ui import ui_submission
 from batched_blender.props import props_submission
@@ -279,7 +280,7 @@ class BatchSubmission(object):
 
         elif self.props.display.pool == {"create"}:
             session.log.info("Creating new pool.")
-            pool_name = "Blender_Pool_{}".format(datetime.datetime.now().isoformat())
+            pool_name = "Blender_Pool_{}".format(uuid.uuid4())
             commands = [
                 "sudo apt-get update",
                 "sudo apt-get install software-properties-common",
@@ -315,7 +316,7 @@ class BatchSubmission(object):
             return pool
 
         elif self.props.display.pool == {"new"}:
-            pool_name = "Blender_Pool_{}".format(datetime.datetime.now().isoformat())
+            pool_name = "Blender_Auto_Pool_{}".format(uuid.uuid4())
             commands = [
                 "sudo apt-get update",
                 "sudo apt-get install software-properties-common",
@@ -463,11 +464,12 @@ class BatchSubmission(object):
 
         try:
             self.batch.job.add(job)
-            task_status = self.batch.task.add_collection(job_id, job_tasks)
             failed_tasks = []
-            for task in task_status.value:
-                if task.status != batch.models.TaskAddStatus.success:
-                    failed_tasks.append(task)
+            for i in range(0, len(job_tasks), 100):
+                task_status = self.batch.task.add_collection(job_id, job_tasks[i:i+100])
+                for task in task_status.value:
+                    if task.status != batch.models.TaskAddStatus.success:
+                        failed_tasks.append(task)
 
             if failed_tasks:
                 [session.log.error("{0}: {1}".format(t.task_id, t.error)) for t in failed_tasks]
