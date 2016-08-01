@@ -29,6 +29,7 @@
 import datetime
 import os
 import sys
+import hashlib
 
 import bpy
 import isodate
@@ -58,8 +59,8 @@ class BatchOps(object):
         """
         session = bpy.context.scene.batch_session
 
-        #try:
-        return func(*args, **kwargs)
+        try:
+            return func(*args, **kwargs)
 
         #except Exception: #TODO: Specify exceptopn
         #    session.log.error(
@@ -69,11 +70,11 @@ class BatchOps(object):
         #    session.redraw()
         #    return {'CANCELLED'}
 
-        #except Exception as exp:
-        #    session.page = "ERROR"
-        #    session.log.error("Error occurred: {0}".format(exp))
-        #    session.redraw()
-        #    return {'CANCELLED'}
+        except Exception as exp:
+            session.page = "ERROR"
+            session.log.error("Error occurred: {0}".format(exp))
+            session.redraw()
+            return {'CANCELLED'}
 
     @staticmethod
     def register(name, label, execute=None, modal=None, invoke=None, **kwargs):
@@ -168,51 +169,47 @@ class BatchAsset(object):
         
         self._client = client
         self._exists = os.path.exists(self.path)
-        timestamp = self.get_last_modified()
-        if timestamp:
-            self.storage_ref = {
-                'key': 'last-modified',
-                'value': timestamp.isoformat()
-                }
-        else:
-            self.storage_ref = None
+        self.lastmodified = datetime.datetime.fromtimestamp(os.path.getmtime(self.path)) if self._exists else None
+        self.checksum = self.get_checksum() if self._exists else None
 
-    def _parse(self, timestamp):
-        timestamp, _, micro= timestamp.partition(".")
-        timestamp = datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S")
-        micro = int(micro.rstrip("Z"), 10)
-        return timestamp + datetime.timedelta(microseconds=micro)
-
-    def is_uploaded(self):
-        container = bpy.context.user_preferences.addons[__package__].preferences.storage_container
+    def get_checksum(self):
+        """Generate md5 checksum for file.
+        :Returns:
+            - The md5 checksum of the file (bytes).
+        """
+        block_size = 128
+        hasher = hashlib.md5()
         try:
-            bpy.context.scene.batch_session.log.info("gathering properties")
-            props = self._client.get_blob_properties(container, self.name)
-            bpy.context.scene.batch_session.log.info("retrieved")
-            print(props.metadata)
-        except AzureHttpError:
-            return False
-        last_uploaded = props.metadata.get('value')
-        print(last_uploaded)
-        if not last_uploaded:
-            print("done")
-            return False
-        print(type(last_uploaded))
-        #print(isodate.parse_datetime(last_uploaded))
-        if self._parse(last_uploaded) < self.get_last_modified():
-            print("not up to date")
-            return False
-        print("uploaded")
-        return True
+            with open(self.path, 'rb') as user_file:
+                while True:
+                    file_block = user_file.read(block_size)
+                    if not file_block:
+                        break
+                    hasher.update(file_block)
+            return hasher.hexdigest()
+
+        except (TypeError, EnvironmentError) as exp:
+            bpy.context.scene.batch_session.log.info("Can't get checksum: {0}".format(exp))
+            return None
 
     def get_last_modified(self):
         if self._exists:
             mod = os.path.getmtime(self.path)
             return datetime.datetime.fromtimestamp(mod)
 
+    def is_uploaded(self):
+        container = bpy.context.user_preferences.addons[__package__].preferences.storage_container
+        bpy.context.scene.batch_session.log.info("Checking if asset is already uploaded...")
+        uploaded_assets = [b.name for b in self._client.list_blobs(container, prefix=self.name)]
+        bpy.context.scene.batch_session.log.info("Retrieved uploaded assets: {}".format(uploaded_assets))
+        blob_name = self.name + '_' + self.checksum
+        bpy.context.scene.batch_session.log.info("Uploaded {}: {}".format(blob_name, blob_name in uploaded_assets))
+        return blob_name in uploaded_assets
+
     def upload(self):
         if self._exists and not self.is_uploaded():
             container = bpy.context.user_preferences.addons[__package__].preferences.storage_container
-            self._client.create_blob_from_path(container, self.name, self.path, metadata=self.storage_ref)
+            blob_name = self.name + '_' + self.checksum
+            self._client.create_blob_from_path(container, blob_name, self.path)
         
 

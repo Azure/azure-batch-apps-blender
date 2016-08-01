@@ -300,6 +300,7 @@ class BatchSubmission(object):
             pool = batch.models.PoolAddParameter(
                 pool_name,
                 'BASIC_A1',
+                display_name = "Blender_Pool_{}".format(datetime.datetime.now().isoformat()),
                 virtual_machine_configuration=pool_config,
                 target_dedicated=self.props.display.pool_size,
                 start_task=batch.models.StartTask(
@@ -316,7 +317,7 @@ class BatchSubmission(object):
             return pool
 
         elif self.props.display.pool == {"new"}:
-            pool_name = "Blender_Auto_Pool_{}".format(uuid.uuid4())
+            pool_name = "Blender_Auto_Pool_{}".format(datetime.datetime.now().isoformat())
             commands = [
                 "sudo apt-get update",
                 "sudo apt-get install software-properties-common",
@@ -344,7 +345,7 @@ class BatchSubmission(object):
                     wait_for_success=True)
             )
             auto_pool = batch.models.AutoPoolSpecification(
-                auto_pool_id_prefix="Blender_auto_pool_",
+                auto_pool_id_prefix="Blender_auto_",
                 pool_lifetime_option=batch.models.PoolLifetimeOption.job,
                 keep_alive=False,
                 pool=pool_spec
@@ -389,12 +390,13 @@ class BatchSubmission(object):
             try:
                 a.upload()
                 expiry = datetime.datetime.utcnow() + datetime.timedelta(hours=24)
+                blob_name = a.name + '_' + a.checksum
                 sas_token = self.uploader.generate_blob_shared_access_signature(
-                    container, a.name, permission=blob.BlobPermissions.READ, expiry=expiry)
-                sas_url = self.uploader.make_blob_url(container, a.name, sas_token=sas_token)
+                    container, blob_name, permission=blob.BlobPermissions.READ, expiry=expiry)
+                sas_url = self.uploader.make_blob_url(container, blob_name, sas_token=sas_token)
                 uploaded.append(batch.models.ResourceFile(file_path=a.name, blob_source=sas_url))
             except Exception as exp:
-                failed[asset.name] = exp
+                failed[a.name] = exp
         if failed:
             [session.log.error("{0}: {1}".format(k, v)) for k, v in failed.items()]
             raise ValueError("Some required assets failed to upload.")

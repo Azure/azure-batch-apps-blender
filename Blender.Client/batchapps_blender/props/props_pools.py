@@ -120,7 +120,7 @@ class PoolDisplayProps(bpy.types.PropertyGroup):
 
         self.pools.add()
         entry = self.pools[-1]
-        entry.auto = pool.id.startswith('Blender_auto_pool_')
+        entry.auto = pool.id.startswith('Blender_auto_')
         entry.id = pool.display_name if entry.auto else pool.id
         entry.created = format_date(pool)
         entry.target = pool.target_dedicated
