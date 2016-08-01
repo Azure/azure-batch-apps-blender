@@ -221,8 +221,7 @@ class BatchSettings(object):
             endpoint_suffix='core.windows.net')
         uploader.create_container(self.cfg['storage_container'], fail_on_exist=False)
         batch_creds = SharedKeyCredentials(self.cfg['account'], self.cfg['key'])
-        batch_config = az_batch.BatchServiceClientConfiguration(batch_creds, base_url=self.cfg['endpoint'])
-        batch = az_batch.BatchServiceClient(batch_config)
+        batch = az_batch.BatchServiceClient(batch_creds, base_url=self.cfg['endpoint'])
 
         self.submission = BatchSubmission(batch, uploader)
         self.log.debug("Initialised submission module")
