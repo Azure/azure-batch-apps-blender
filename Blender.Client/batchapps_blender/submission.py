@@ -301,7 +301,7 @@ class BatchSubmission(object):
                 pool_name,
                 'BASIC_A1',
                 virtual_machine_configuration=pool_config,
-                target_dedicated=pools.pool_size,
+                target_dedicated=self.props.display.pool_size,
                 start_task=batch.models.StartTask(
                     command_line="/bin/bash -c 'set -e; set -o pipefail; {}; wait'".format('; '.join(commands)),
                     run_elevated=True,
@@ -337,7 +337,7 @@ class BatchSubmission(object):
                 display_name=pool_name,
                 vm_size='BASIC_A1',
                 virtual_machine_configuration=pool_config,
-                target_dedicated=pools.pool_size,
+                target_dedicated=self.props.display.pool_size,
                 start_task=batch.models.StartTask(
                     command_line="/bin/bash -c 'set -e; set -o pipefail; {}; wait'".format('; '.join(commands)),
                     run_elevated=True,
