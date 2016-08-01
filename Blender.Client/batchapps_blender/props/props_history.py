@@ -138,7 +138,7 @@ class HistoryDisplayProps(bpy.types.PropertyGroup):
         self.jobs.add()
         entry = self.jobs[-1]
         entry.id = job.id
-        entry.name = job.display_name
+        entry.name = job.display_name if job.display_name else ""
         #entry.type = job.type
         entry.status = job.state.value
         #entry.tasks = job.number_tasks
