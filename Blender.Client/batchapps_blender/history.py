@@ -433,7 +433,7 @@ class BatchHistory(object):
             "Getting job data")
 
         latest_jobs = self.batch.job.list(batch.models.JobListOptions(max_results=self.props.display.per_call))
-        latest_jobs = list(latest_jobs)
+        latest_jobs = [j for j in latest_jobs if j.id.startswith("blender_render")]
         #latest_jobs = self.batch.get_jobs(
         #    index=self.props.display.index,
         #    per_call=self.props.display.per_call)
