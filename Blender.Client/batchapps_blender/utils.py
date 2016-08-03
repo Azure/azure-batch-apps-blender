@@ -34,7 +34,67 @@ import hashlib
 import bpy
 import isodate
 
+from azure.batch import models
 from azure.common import AzureHttpError
+
+class BatchUtils(object):
+
+    install_commands = [
+            "sudo apt-get update",
+            "sudo apt-get install software-properties-common",
+            "sudo add-apt-repository -y ppa:thomas-schiex/blender",
+            "sudo apt-get update",
+            "sudo apt-get -q -y install blender",
+            ]
+
+    @staticmethod
+    def current_time():
+        now = datetime.datetime.now().isoformat()
+        now = bpy.path.clean_name(now).replace('T', '-').replace('_', '-')
+        return now
+
+    @staticmethod
+    def install_blender():
+        start_task = models.StartTask(
+                command_line="/bin/bash -c 'set -e; set -o pipefail; {}; wait'".format('; '.join(BatchUtils.install_commands)),
+                run_elevated=True,
+                wait_for_success=True)
+        return start_task
+
+    def get_pool_config(batch):
+        """
+        Gets a virtual machine configuration for the specified distro and version
+        from the list of Azure Virtual Machines Marketplace images verified to be
+        compatible with the Batch service.
+        :param batch_service_client: A Batch service client.
+        :type batch_service_client: `azure.batch.BatchServiceClient`
+        :param str distro: The Linux distribution that should be installed on the
+        compute nodes, e.g. 'Ubuntu' or 'CentOS'. Supports partial string matching.
+        :param str version: The version of the operating system for the compute
+        nodes, e.g. '15' or '14.04'. Supports partial string matching.
+        :rtype: `azure.batch.models.VirtualMachineConfiguration`
+        :return: A virtual machine configuration specifying the Virtual Machines
+        Marketplace image and node agent SKU to install on the compute nodes in
+        a pool.
+        """
+        distro = bpy.context.user_preferences.addons[__package__].preferences.vm_distro
+        version = bpy.context.user_preferences.addons[__package__].preferences.vm_version
+        node_agent_skus = batch.account.list_node_agent_skus()
+
+        node_agent = next(agent for agent in node_agent_skus
+                          for image_ref in agent.verified_image_references
+                          if distro.lower() in image_ref.offer.lower() and
+                          version.lower() in image_ref.sku.lower())
+
+        img_ref = [image_ref for image_ref in node_agent.verified_image_references
+                   if distro.lower() in image_ref.offer.lower() and
+                   version.lower() in image_ref.sku.lower()][-1]
+
+        vm_config = models.VirtualMachineConfiguration(
+            image_reference=img_ref,
+            node_agent_sku_id=node_agent.id)
+
+        return vm_config
 
 class BatchOps(object):
     """

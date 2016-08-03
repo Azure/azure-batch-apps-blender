@@ -151,12 +151,12 @@ class SubmissionDisplayProps(bpy.types.PropertyGroup):
         default=True)
 
     pool = bpy.props.EnumProperty(
-        items=[("new", "Auto Pool", "Auto provision a pool for this job"),
+        items=[#("new", "Auto Pool", "Auto provision a pool for this job"),
                ("reuse", "Use Pool ID", "Reuse an existing persistent pool"),
                ("create", "Create Pool", "Create a new persistent pool")],
         description="Pool on which job will run",
         options={'ENUM_FLAG'},
-        default={"new"})
+        default={"reuse"})
 
     pool_id = bpy.props.StringProperty(
         description="Existing Pool ID",

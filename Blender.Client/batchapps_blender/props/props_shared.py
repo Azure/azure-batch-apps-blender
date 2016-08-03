@@ -80,6 +80,49 @@ class BatchPreferences(bpy.types.AddonPreferences):
         description="Name of container in storage where assets will be uploaded.",
         default="batched-blender-assets")
 
+    vm_type = bpy.props.EnumProperty(items=(('STANDARD_A1', 'STANDARD_A1', ''),
+                                            ('STANDARD_A2', 'STANDARD_A2', ''),
+                                            ('STANDARD_A3', 'STANDARD_A3', ''),
+                                            ('STANDARD_A4', 'STANDARD_A4', ''),
+                                            ('STANDARD_A5', 'STANDARD_A5', ''),
+                                            ('STANDARD_A6', 'STANDARD_A6', ''),
+                                            ('STANDARD_A7', 'STANDARD_A7', ''),
+                                            ('STANDARD_A8', 'STANDARD_A8', ''),
+                                            ('STANDARD_A9', 'STANDARD_A9', ''),
+                                            ('STANDARD_A10', 'STANDARD_A10', ''),
+                                            ('STANDARD_A11', 'STANDARD_A11', ''),
+                                            ('STANDARD_D1', 'STANDARD_D1', ''),
+                                            ('STANDARD_D2', 'STANDARD_D2', ''),
+                                            ('STANDARD_D3', 'STANDARD_D3', ''),
+                                            ('STANDARD_D4', 'STANDARD_D4', ''),
+                                            ('STANDARD_D11', 'STANDARD_D11', ''),
+                                            ('STANDARD_D12', 'STANDARD_D12', ''),
+                                            ('STANDARD_D13', 'STANDARD_D13', ''),
+                                            ('STANDARD_D14', 'STANDARD_D14', ''),
+                                            ('STANDARD_D1_v2', 'STANDARD_D1_v2', ''),
+                                            ('STANDARD_D2_v2', 'STANDARD_D2_v2', ''),
+                                            ('STANDARD_D3_v2', 'STANDARD_D3_v2', ''),
+                                            ('STANDARD_D4_v2', 'STANDARD_D4_v2', ''),
+                                            ('STANDARD_D5_v2', 'STANDARD_D5_v2', ''),
+                                            ('STANDARD_D11_v2', 'STANDARD_D11_v2', ''),
+                                            ('STANDARD_D12_v2', 'STANDARD_D12_v2', ''),
+                                            ('STANDARD_D13_v2', 'STANDARD_D13_v2', ''),
+                                            ('STANDARD_D14_v2', 'STANDARD_D14_v2', ''),
+                                            ('STANDARD_D15_v2', 'STANDARD_D15_v2', '')),
+                                           name="VM Type",
+                                           description="The type of machine on which to render.",
+                                           default="STANDARD_A1")
+
+    vm_distro = bpy.props.StringProperty(
+        name="Cloud VM Linux Distro",
+        description="The OS to be used on the Cloud VMs.",
+        default="Ubuntu")
+
+    vm_version = bpy.props.StringProperty(
+        name="Cloud VM Linux Distro Version",
+        description="The version of the OS to be used on the Cloud VMs.",
+        default="14")
+
     def draw(self, context):
         """
         Draw the display for the settings in the User Preferences
@@ -110,3 +153,10 @@ class BatchPreferences(bpy.types.AddonPreferences):
         layout.prop(self, "storage")
         layout.prop(self, "storage_key")
         layout.prop(self, "storage_container")
+
+        layout.label(text="")
+        layout.label(text="VM Configuration")
+
+        layout.prop(self, "vm_type")
+        layout.prop(self, "vm_distro")
+        layout.prop(self, "vm_version")

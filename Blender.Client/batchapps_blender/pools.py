@@ -32,7 +32,7 @@ import os
 
 import bpy
 
-from batched_blender.utils import BatchOps
+from batched_blender.utils import BatchOps, BatchUtils
 from batched_blender.ui import ui_pools
 from batched_blender.props import props_pools
 
@@ -178,33 +178,17 @@ class BatchPools(object):
             - Blender-specific value {'FINISHED'} to indicate the operator has
               completed its action.
         """
-        pool_name = bpy.path.clean_name("Blender_Pool_{}".format(datetime.datetime.now().isoformat()))
+        pool_name = "Blender_Pool_{}".format(BatchUtils.current_time())
         context.scene.batch_session.log.info("creating pool {}".format(pool_name))
-        commands = [
-            "sudo apt-get update",
-            "sudo apt-get install software-properties-common",
-            "sudo add-apt-repository -y ppa:thomas-schiex/blender",
-            "sudo apt-get update",
-            "sudo apt-get -q -y install blender",
-        ]
-        pool_config = batch.models.VirtualMachineConfiguration(
-            image_reference=batch.models.ImageReference(
-                'Canonical',
-                'UbuntuServer',
-                '14.04.4-LTS',
-                'latest'
-            ),
-            node_agent_sku_id='batch.node.ubuntu 14.04'
-        )
+        
+        pool_config = BatchUtils.get_pool_config(self.batch)
         pool = batch.models.PoolAddParameter(
             pool_name,
-            'BASIC_A1',
+            bpy.context.user_preferences.addons[__package__].preferences.vm_type,
+            display_name=pool_name,
             virtual_machine_configuration=pool_config,
             target_dedicated=self.props.display.pool_size,
-            start_task=batch.models.StartTask(
-                command_line="/bin/bash -c 'set -e; set -o pipefail; {}; wait'".format('; '.join(commands)),
-                run_elevated=True,
-                wait_for_success=True),
+            start_task=BatchUtils.install_blender(),
         )
         self.batch.pool.add(pool)
 

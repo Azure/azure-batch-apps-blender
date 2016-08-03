@@ -94,16 +94,16 @@ def pool_select(ui, layout, active):
         ui.prop(bpy.context.scene.batch_submission, "pool_id",
                 layout.row(), active=active)
 
-    elif bpy.context.scene.batch_submission.pool == {"create"}:
+    else:   # bpy.context.scene.batch_submission.pool == {"create"}:
         ui.label("Create a new persistant pool", layout.row(), active=active)
         ui.prop(bpy.context.scene.batch_pools, "pool_size",
                 layout.row(), "Number of instances:", active=active)
 
-    else:
-        ui.label("Auto provision a pool for this job", layout.row(),
-                 active=active)
-        ui.prop(bpy.context.scene.batch_submission, "pool_size",
-                layout.row(), "Number of instances:", active=active)
+    #else:
+    #    ui.label("Auto provision a pool for this job", layout.row(),
+    #             active=active)
+    #    ui.prop(bpy.context.scene.batch_submission, "pool_size",
+    #            layout.row(), "Number of instances:", active=active)
 
 def pre_submission(ui, layout):
     """

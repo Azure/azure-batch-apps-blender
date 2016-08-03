@@ -35,11 +35,10 @@ import os
 import string
 import threading
 import time
-import uuid
 
 from batched_blender.ui import ui_submission
 from batched_blender.props import props_submission
-from batched_blender.utils import BatchOps, BatchAsset
+from batched_blender.utils import BatchOps, BatchAsset, BatchUtils
 
 import azure.batch as batch
 import azure.storage.blob as blob
@@ -279,34 +278,17 @@ class BatchSubmission(object):
             return pool
 
         elif self.props.display.pool == {"create"}:
-            session.log.info("Creating new pool.")
-            pool_name = "Blender_Pool_{}".format(uuid.uuid4())
-            commands = [
-                "sudo apt-get update",
-                "sudo apt-get install software-properties-common",
-                "sudo add-apt-repository -y ppa:thomas-schiex/blender",
-                "sudo apt-get update",
-                "sudo apt-get -q -y install blender",
-            ]
-            pool_config = batch.models.VirtualMachineConfiguration(
-                image_reference=batch.models.ImageReference(
-                    'Canonical',
-                    'UbuntuServer',
-                    '14.04.4-LTS',
-                    'latest'
-                ),
-                node_agent_sku_id='batch.node.ubuntu 14.04'
-            )
+            pool_name = "Blender_Pool_{}".format(BatchUtils.current_time())
+            session.log.info("Creating new pool {}".format(pool_name))
+        
+            pool_config = BatchUtils.get_pool_config(self.batch)
             pool = batch.models.PoolAddParameter(
                 pool_name,
-                'BASIC_A1',
-                display_name = "Blender_Pool_{}".format(datetime.datetime.now().isoformat()),
+                bpy.context.user_preferences.addons[__package__].preferences.vm_type,
+                display_name=pool_name,
                 virtual_machine_configuration=pool_config,
                 target_dedicated=self.props.display.pool_size,
-                start_task=batch.models.StartTask(
-                    command_line="/bin/bash -c 'set -e; set -o pipefail; {}; wait'".format('; '.join(commands)),
-                    run_elevated=True,
-                    wait_for_success=True)
+                start_task=BatchUtils.install_blender(),
             )
             self.batch.pool.add(pool)
             pool = batch.models.PoolInformation(pool_id=pool_name)
@@ -317,35 +299,19 @@ class BatchSubmission(object):
             return pool
 
         elif self.props.display.pool == {"new"}:
-            pool_name = "Blender_Auto_Pool_{}".format(datetime.datetime.now().isoformat())
-            commands = [
-                "sudo apt-get update",
-                "sudo apt-get install software-properties-common",
-                "sudo add-apt-repository -y ppa:thomas-schiex/blender",
-                "sudo apt-get update",
-                "sudo apt-get -q -y install blender",
-            ]
-            pool_config = batch.models.VirtualMachineConfiguration(
-                image_reference=batch.models.ImageReference(
-                    'Canonical',
-                    'UbuntuServer',
-                    '14.04.4-LTS',
-                    'latest'
-                ),
-                node_agent_sku_id='batch.node.ubuntu 14.04'
-            )
+            pool_name = "Blender_Auto_Pool_{}".format(BatchUtils.current_time())
+            session.log.info("Creating auto-pool {}".format(pool_name))
+
+            pool_config = BatchUtils.get_pool_config(self.batch)
             pool_spec = batch.models.PoolSpecification(
                 display_name=pool_name,
-                vm_size='BASIC_A1',
+                vm_size=bpy.context.user_preferences.addons[__package__].preferences.vm_type,
                 virtual_machine_configuration=pool_config,
                 target_dedicated=self.props.display.pool_size,
-                start_task=batch.models.StartTask(
-                    command_line="/bin/bash -c 'set -e; set -o pipefail; {}; wait'".format('; '.join(commands)),
-                    run_elevated=True,
-                    wait_for_success=True)
+                start_task=BatchUtils.install_blender(),
             )
             auto_pool = batch.models.AutoPoolSpecification(
-                auto_pool_id_prefix="Blender_auto_",
+                auto_pool_id_prefix="Blender_Auto",
                 pool_lifetime_option=batch.models.PoolLifetimeOption.job,
                 keep_alive=False,
                 pool=pool_spec
