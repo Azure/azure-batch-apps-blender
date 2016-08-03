@@ -29,11 +29,10 @@
 bl_info = {
     "name": "Batched Blender",
     "author": "Microsoft Corp. <bigcompute@microsoft.com>",
-    "version": (0, 1, 1),
+    "version": (0, 2, 0),
     "blender": (2, 7, 7),
     "location": "Render Properties",
-    "description": ("Export Blender files to be rendered externally by "
-                    "Microsoft Batch Apps."),
+    "description": "Export Blender files to be rendered externally by Azure Batch.",
     "category": "Render"}
 
 import bpy
