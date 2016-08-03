@@ -47,7 +47,7 @@ def main():
             print("Cannot create build dir at path: {0}".format(package_dir))
             return
 
-    package = os.path.join(package_dir, "batchapps-blender-{0}.zip".format(VERSION))
+    package = os.path.join(package_dir, "batched-blender-{0}.zip".format(VERSION))
     source = os.path.abspath("batched_blender")
 
     with zipfile.ZipFile(package, mode='w') as blend_zip:
