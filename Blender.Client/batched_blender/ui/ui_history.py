@@ -58,6 +58,7 @@ def details(ui, layout, job):
 
     """
     ui.label("Status: {0}".format(job.status), layout)
+    ui.label("Percent: {0}".format(job.percent), layout)
     ui.label("Submitted: {0}".format(job.timestamp), layout)
     ui.label("ID: {0}".format(job.id), layout)
     #ui.label("Type: {0}".format(job.type), layout)

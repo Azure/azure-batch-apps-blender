@@ -28,6 +28,8 @@
 
 import bpy
 
+import batched_blender.helpers as helpers
+
 def format_date(job):
     """
     Format a job submitted date for the UI.
@@ -74,9 +76,9 @@ class HistoryDetails(bpy.types.PropertyGroup):
         description="Time Submitted",
         default="")
 
-    #percent = bpy.props.IntProperty(
-    #    description="Percent Complete",
-    #    default=0)
+    percent = bpy.props.IntProperty(
+        description="Percent Complete",
+        default=0)
 
     pool_id = bpy.props.StringProperty(
         description="Job Pool ID",
@@ -127,13 +129,14 @@ class HistoryDisplayProps(bpy.types.PropertyGroup):
         'enabling': 'TIME'
         }
 
-    def add_job(self, job):
+    def add_job(self, job, batch_client=None):
         """
         Add a job to the job display list.
 
         """
         log = bpy.context.scene.batch_session.log
         log.debug("Adding job to ui list {0}".format(job.id))
+        
 
         self.jobs.add()
         entry = self.jobs[-1]
@@ -143,6 +146,7 @@ class HistoryDisplayProps(bpy.types.PropertyGroup):
         entry.status = job.state.value
         #entry.tasks = job.number_tasks
         #entry.percent = job.percentage if job.percentage else 0
+        entry.percent = helpers.get_job_percent(batch_client, job.id)
         entry.timestamp = format_date(job)
 
         if job.pool_info.pool_id:
