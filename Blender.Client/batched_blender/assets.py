@@ -156,16 +156,16 @@ class BatchAssets(object):
 
         new_path = self.get_jobpath()
 
-        if new_path != self.props.path:
-            session.log.debug("New scene, gathering assets.")
+        #if new_path != self.props.path:
+        session.log.debug("New scene, gathering assets.")
 
-            self.props.path = new_path
+        self.props.path = new_path
 
-            if not self.props.temp:
-                session.log.debug("Not temp file - saving.")
-                bpy.ops.wm.save_mainfile()
+        #if not self.props.temp:
+        #    session.log.debug("Not temp file - saving.")
+        #    bpy.ops.wm.save_mainfile()
             
-            self.generate_collection()
+        self.generate_collection()
 
         return {'FINISHED'}
 
@@ -470,7 +470,3 @@ class BatchAssets(object):
                 upload_me.append(index)
 
         return upload_me
-
-
-
-
