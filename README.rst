@@ -10,6 +10,8 @@ rendering workloads to the Batch service.
 For more information on Azure Batch, documentation can be found `here <https://azure.microsoft.com/en-us/documentation/services/batch/>`_.
 Also, documentation for the Azure Batch Python SDK can be found `here <https://azure-sdk-for-python.readthedocs.io/en/latest/index.html>`_.
 
+To run this sample, you will need an Azure subscription and you will also need to `create a Batch account <https://azure.microsoft.com/en-us/documentation/articles/batch-account-create-portal/>`_.
+
 
 License
 =======
@@ -40,24 +42,31 @@ The Addon requires some additional Python packages in order to run.
 By default, Blender is shipped with its own Python environment, so it's into this environment that these
 packages will need to be installed.
 
-The easiest method to do this is with Pip (which requires an existing Python installation).
-The required packages can be installed, choosing the Blender bundled Python environment as the target directory for the installation. Note that by
-installing azure-batch and azure-storage, all their dependencies will also be installed to Blender::
+The easiest method to do this is with Pip.
+On Windows and Linux, to set up Pip with Blender and install the dependencies:
 
-	>> pip install --target "Blender Foundation/blender/2.7x/python/lib/site-packages" azure-batch
+1. Save a copy of get-pip.py into "Blender Foundation/Blender/2.7x/python/bin" (`<https://bootstrap.pypa.io/get-pip.py>`_)
+2. Open a cmd prompt (you may need administrative privilges) and change the current directory to "Blender Foundation/Blender/2.7x/python/bin" For example::
 
-The required packages are the following:
+	>> cd "c:/Program Files/Blender Foundation/Blender/2.7x/python/bin"
+3. Run the following command::
 
-- `Azure Batch <https://pypi.python.org/pypi/azure-batch>`_ and it's dependencies
-- `Azure Storage <https://pypi.python.org/pypi/azure-storage>`_ and it's dependencies
-- `Setuptools <https://pypi.python.org/pypi/setuptools>`_
+	>> python get-pip.py
+4. Now change directory to "Blender Foundation/Blender/2.7x/python/Scripts"::
+
+	>> cd ..\Scripts
+5. Finally run the following two commands to install the Azure Storage and Batch packages along with their dependencies::
+
+	>> pip install azure-batch
+	>> pip install azure-storage
 
 
-Building and Installing the Addon
+
+Packaging and Installing the Addon
 ----------------------------------
 
 To package up the addon, zip up the Blender.Client/batched_blender directory.
-Alternatively set Blender.Client as the start-up project and run the solution. This will zip up the addon into Blender.Client/build
+Alternatively set Blender.Client as the start-up project in Visual Studio and run the solution. This will zip up the addon into Blender.Client/build
 
 To install the Addon:
 
@@ -66,7 +75,7 @@ To install the Addon:
 3. Navigate to the Addons tab
 4. Click 'Install from File...' at the bottom of the dialog window.
 5. Navigate to and select the packaged client zip.
-6. The Addon 'Batch Apps Blender' will now be registered under the 'Render' category. Once located, select the 
+6. The Addon 'Batched Blender' will now be registered under the 'Render' category. Once located, select the 
    check box to activate the Addon.
 7. Once activated, the Addon UI will appear in the 'Render Properties' panel - by default, in the lower right corner
    of the screen.
@@ -85,7 +94,7 @@ The authentication configuration settings of the file can also be overridden in 
 1. Run Blender
 2. Open File > User Preferences
 3. Navigate to the Addons tab
-4. Either search for 'Batch Apps Blender', or navigate to the Addon under the 'Render' category.
+4. Either search for 'Batched Blender', or navigate to the Addon under the 'Render' category.
 5. Select the arrow next to the Addon to open the details drop down - here you will find info on the version and installation directory.
 6. Listed here you will also find the configuration preferences. If modified, click 'Save User Settings' at the bottom 
    of the dialog window (Note: this will also cause the Batch Apps Blender Addon to be activated on Blender start-up).
@@ -99,6 +108,8 @@ To run this addon you will need:
 
 - An Azure Batch account name, URL and access key
 - An Azure Storage account name and access key
+
+This information can all be found in the `Azure Management Portal <https://ms.portal.azure.com/>`_ and pasted into the Batched Blender preferences configuration described above.
 
 
 
