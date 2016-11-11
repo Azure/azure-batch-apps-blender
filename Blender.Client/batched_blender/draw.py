@@ -171,6 +171,9 @@ class Interface(bpy.types.Panel):
 
         elif session.page in session.history.pages:
             session.history.display(self, self.layout)
+
+        elif session.page in session.bfiles.pages:
+            session.bfiles.display(self, self.layout)
         
         else:
             session.log.error("Cant load page: {0}. "

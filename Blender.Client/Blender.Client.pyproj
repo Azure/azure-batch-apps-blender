@@ -33,7 +33,16 @@
     <Compile Include="batched_blender\assets.py" />
     <Compile Include="batched_blender\draw.py" />
     <Compile Include="batched_blender\history.py" />
+    <Compile Include="batched_blender\helpers.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="batched_blender\bfiles.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="batched_blender\pools.py" />
+    <Compile Include="batched_blender\props\props_bfiles.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="batched_blender\props\props_assets.py" />
     <Compile Include="batched_blender\props\props_history.py" />
     <Compile Include="batched_blender\props\props_pools.py" />
@@ -41,6 +50,9 @@
     <Compile Include="batched_blender\props\props_submission.py" />
     <Compile Include="batched_blender\shared.py" />
     <Compile Include="batched_blender\submission.py" />
+    <Compile Include="batched_blender\ui\ui_bfiles.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="batched_blender\ui\ui_assets.py" />
     <Compile Include="batched_blender\ui\ui_history.py" />
     <Compile Include="batched_blender\ui\ui_pools.py" />

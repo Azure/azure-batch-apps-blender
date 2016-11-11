@@ -36,6 +36,7 @@ from batched_blender.submission import BatchSubmission
 from batched_blender.assets import BatchAssets
 from batched_blender.history import BatchHistory
 from batched_blender.pools import BatchPools
+from batched_blender.bfiles import BatchBfiles
 from batched_blender.utils import BatchOps
 
 import azure.storage.blob as az_storage
@@ -67,6 +68,7 @@ class BatchSettings(object):
         self.history = None
         self.assets = None
         self.pools = None
+        self.bfiles = None
 
         self.start()
 
@@ -234,6 +236,9 @@ class BatchSettings(object):
 
         self.pools = BatchPools(batch)
         self.log.debug("Initialised pool module")
+
+        self.bfiles = BatchBfiles(batch, uploader)
+        self.log.debug("Initialised bfile module")
 
         self.page = "HOME"
 

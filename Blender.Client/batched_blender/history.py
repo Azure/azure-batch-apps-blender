@@ -37,6 +37,7 @@ from batched_blender.props import props_history
 
 import azure.batch as batch
 
+import batched_blender.helpers as helpers
 
 class BatchHistory(object):
     """
@@ -440,7 +441,7 @@ class BatchHistory(object):
 
         for job in latest_jobs:
             self.props.job_list.append(job)
-            self.props.display.add_job(job)
+            self.props.display.add_job(job, self.batch)
 
         #self.props.display.total_count = len(self.batch)
         for index, job in enumerate(self.props.display.jobs):

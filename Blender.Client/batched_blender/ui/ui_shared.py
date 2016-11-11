@@ -44,6 +44,7 @@ def home(ui, layout):
     ui.operator("submission.page", "Submit New Job", col)
     ui.operator("history.page", "Jobs", col)
     ui.operator("assets.page", "Assets", col)
+    ui.operator("bfiles.page", "Blobs", col)
     ui.operator("pools.page", "Pools", col)
     ui.operator("shared.management_portal", "Management Portal", col)
     ui.label("", layout)
