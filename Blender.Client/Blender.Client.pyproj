@@ -60,9 +60,6 @@
     <Compile Include="batched_blender\ui\ui_submission.py" />
     <Compile Include="batched_blender\utils.py" />
     <Compile Include="batched_blender\__init__.py" />
-    <Compile Include="dependency_check.py">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="package.py">
       <SubType>Code</SubType>
     </Compile>

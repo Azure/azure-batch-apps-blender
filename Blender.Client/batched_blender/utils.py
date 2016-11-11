@@ -45,6 +45,8 @@ class BatchUtils(object):
             "sudo add-apt-repository -y ppa:thomas-schiex/blender",
             "sudo apt-get update",
             "sudo apt-get -q -y install blender",
+            "sudo apt-get -y install python-pip",
+            "pip install azure-storage"
             ]
 
     @staticmethod
