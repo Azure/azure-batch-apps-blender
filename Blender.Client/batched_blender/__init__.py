@@ -35,11 +35,52 @@ bl_info = {
     "description": "Export Blender files to be rendered externally by Azure Batch.",
     "category": "Render"}
 
+import importlib
+import os
+import subprocess
 import bpy
+
+_NEED_INSTALL = False
+_DEPENDENCIES = ['azure.batch', 'azure.storage']
+_APP_DIR = os.path.dirname(__file__)
+
+print("Checking dependencies...")
+for package in _DEPENDENCIES:
+    try:
+        importlib.import_module(package)
+    except ImportError:
+        print("Unable to load {}".format(package))
+        _NEED_INSTALL = True
+
+if _NEED_INSTALL:
+    print("One or more dependencies could not be loaded. Attempting to install via Pip.")
+    try:
+        import pip
+    except ImportError:
+        print("Pip not found. Installing Pip.")
+        try:
+            subprocess.run(
+                        [
+                            bpy.app.binary_path_python,
+                            os.path.join(_APP_DIR, 'scripts', 'install_pip.py')
+                        ],
+                        stdout=subprocess.PIPE,
+                        check=True)
+            import pip
+        except BaseException as exp:
+            print("Failed to install Pip. Please install dependencies manually to continue.")
+            raise
+        print("Installing dependencies")
+        for package in _DEPENDENCIES:
+            pip.main(['install', package])
+            print("Successfully installed {}".format(package))
+    except:
+        raise ImportError("Failed to install dependencies")
 
 from batched_blender.props.props_shared import BatchPreferences
 from batched_blender.shared import BatchSettings
 from batched_blender.draw import *
+
 
 @bpy.app.handlers.persistent
 def start_session(self):
@@ -61,7 +102,7 @@ def start_session(self):
 
     except Exception as e:
         print("Batch Addon failed to load.")
-        print ("Error: {0}".format(e))
+        print("Error: {0}".format(e))
         bpy.types.Scene.batch_error = e
 
     finally:
@@ -93,4 +134,3 @@ def unregister():
 
 if __name__ == "__main__":
     register()
-

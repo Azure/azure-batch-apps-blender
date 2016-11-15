@@ -48,6 +48,7 @@
     <Compile Include="batched_blender\props\props_pools.py" />
     <Compile Include="batched_blender\props\props_shared.py" />
     <Compile Include="batched_blender\props\props_submission.py" />
+    <Compile Include="batched_blender\scripts\install_pip.py" />
     <Compile Include="batched_blender\shared.py" />
     <Compile Include="batched_blender\submission.py" />
     <Compile Include="batched_blender\ui\ui_bfiles.py">
@@ -67,6 +68,7 @@
   <ItemGroup>
     <Folder Include="batched_blender\" />
     <Folder Include="batched_blender\props\" />
+    <Folder Include="batched_blender\scripts\" />
     <Folder Include="batched_blender\ui\" />
   </ItemGroup>
   <Import Condition="Exists($(PtvsTargetsFile))" Project="$(PtvsTargetsFile)" />
