@@ -28,9 +28,41 @@
 
 import bpy
 
-def details(ui, layout, pool):
+
+class PoolListUI(bpy.types.UIList):
+    """Ui List element for display pools"""
+
+    def draw_item(self, context, layout, data, item, icon, active_data,
+                  active_propname, index, flt_flag):
+        """Draw UI List"""
+
+        pool = item
+
+        if self.layout_type in {'DEFAULT', 'COMPACT'}:
+            layout.label(pool.name)
+
+            col = layout.column()
+            col.prop(pool,
+                        "delete_checkbox",
+                        text="",
+                        index=index)
+
+        elif self.layout_type in {'GRID'}:
+            layout.alignment = 'CENTER'
+
+            if flt_flag:
+                layout.enabled = False
+            layout.label(text="", icon_value=icon)
+
+        else:
+            layout.label(text="",
+                         translate=False,
+                         icon_value=icon)
+
+
+def uilist_controls(ui, layout):
     """
-    Display details on an individual selected pool.
+    Displays the buttons and labels for the UI List.
 
     :Args:
         - ui (blender :class:`.Interface`): The instance of the Interface
@@ -38,73 +70,80 @@ def details(ui, layout, pool):
         - layout (blender :class:`bpy.types.UILayout`): The layout object,
             derived from the Interface panel. Used for creating ui
             components.
-        - pool (:class:`.PoolDetails`): The selected pool to display.
-
-    """
-    types = {True:'Auto Provisioned',
-             False: 'Persistent Pool'}
-    if not pool.auto:
-        split = layout.split(percentage=0.1)
-        ui.label("ID: ", split.row(align=True))
-        proprow = split.row(align=True)
-        proprow.active=False
-        ui.prop(pool, 'id', proprow)
-
-    else: ui.label("ID: {0}".format(pool.id), layout)
-
-    ui.label("Type: {0}".format(types[pool.auto]), layout)
-    ui.label("State: {0}".format(pool.state), layout)
-    ui.label("Currently running: {0} jobs".format(pool.queue), layout)
-    ui.label("", layout)
-
-    ui.label("Created: {0}".format(pool.created), layout)
-    split = layout.split(percentage=0.5)
-    ui.label("Target Size: {0}".format(pool.target), split.row(align=True))
-    ui.label("Current Size: {0}".format(pool.current), split.row(align=True))
-                
-
-    row = layout.row(align=True)
-    if pool.queue > 0:
-        row.alert=True
-    ui.operator("pools.delete", "Delete Pool", row)
-
-def display_pools(ui, layout):
-    """
-    Display pool list.
-
-    :Args:
-        - ui (blender :class:`.Interface`): The instance of the Interface
-            panel class.
-        - layout (blender :class:`bpy.types.UILayout`): The layout object,
-            derived from the Interface panel. Used for creating ui
-            components.
-
     """
     batch_pools = bpy.context.scene.batch_pools
-    icons_right = {True: 'DISCLOSURE_TRI_RIGHT_VEC', False: 'TRIA_RIGHT'}
-    icons_down = {True: 'DISCLOSURE_TRI_DOWN_VEC', False: 'TRIA_DOWN'}
 
-    if not batch_pools.pools:
-        ui.label("No pools found", layout)
-        
-    else:
-        for index, pool in enumerate(batch_pools.pools):
+    num_pools = len(batch_pools.pools)
+    num_display = "Displaying {0} pools".format(num_pools)
 
-            if index == batch_pools.selected:
+    ui.label(num_display, layout.row(align=True), align='CENTER')
+    row = layout.row(align=True)
 
-                inner_box = layout.box()
-                ui.operator("pools."+pool.id.replace("-", "_").lower(), "Hide details",
-                            inner_box, icons_down[pool.auto])
+    div = row.split()
+    ui.operator("pools.refresh", "Reset", div, "FILE_REFRESH")
 
-                details(ui, inner_box, pool)
+    div = row.split()
+    active = any(a.delete_checkbox for a in batch_pools.pools)
+    ui.operator('pools.delete', "Remove", div, "MOVE_UP_VEC", active=active) #TODO: Change icon
 
-            else:
-                ui.operator("pools."+pool.id.replace("-", "_").lower(), (' '+pool.id),
-                            layout, icons_right[pool.auto])
+    div = row.split()
+    ui.operator("pools.create", "Create", div, "ZOOMIN")
+
+
+def display_uilist(ui, layout):
+    """
+    Displays the UI List that will show all current pools.
+
+    :Args:
+        - ui (blender :class:`.Interface`): The instance of the Interface
+            panel class.
+        - layout (blender :class:`bpy.types.UILayout`): The layout object,
+            derived from the Interface panel. Used for creating ui
+            components.
+    """
+
+    batch_pools = bpy.context.scene.batch_pools
+    outerBox = layout.box()
+    row = outerBox.row()
+
+    ui.label("Name", row)
+    ui.label("Remove", row, "RIGHT")
+
+    outerBox.template_list("PoolListUI",
+                           "",
+                           batch_pools,
+                           "pools",
+                           batch_pools,
+                           "index")
+
+    if len(batch_pools.pools) > 0:
+        display_details(ui, outerBox)
+
+
+def display_details(ui, outerBox):
+    """
+    Displays the details of the pool selected in the UI List.
+
+    :Args:
+        - ui (blender :class:`.Interface`): The instance of the Interface
+            panel class.
+        - outerBox (blender :class:`bpy.types.UILayout`): The layout object,
+            derived from the Interface panel. Used for creating ui
+            components. In this case the box the details are listed within.
+    """
+    batch_pools = bpy.context.scene.batch_pools
+    col = outerBox.column(align=True)
+    
+    if batch_pools.index < len(batch_pools.pools):
+        selected = batch_pools.pools[batch_pools.index]
+        ui.label("Pool: {0}".format(selected.name), col)
+        ui.label("Status: {0}".format(selected.state), col)
+        ui.label("Date Created: {0}".format(selected.timestamp), col)
+        ui.label("Size: {0}".format(selected.nodes), col)
 
 def pools(ui, layout):
     """
-    Display pools page.
+    Display pool management page.
 
     :Args:
         - ui (blender :class:`.Interface`): The instance of the Interface
@@ -114,14 +153,9 @@ def pools(ui, layout):
             components.
 
     """
-    batch_pools = bpy.context.scene.batch_pools
-    ui.operator("pools.create", "Create New Pool", layout)
-    ui.label("", layout)
-
-    display_pools(ui, layout)
-
-    ui.label("", layout)
-    ui.operator("pools.page", "Refresh Pools", layout)
+    uilist_controls(ui, layout)
+    display_uilist(ui, layout)
+    
     ui.operator("shared.home", "Return Home", layout)
 
 def create(ui, layout):
@@ -137,18 +171,13 @@ def create(ui, layout):
 
     """
     batch_pools = bpy.context.scene.batch_pools
-    ui.operator("pools.create", "Create New Pool", layout.row())
 
     box = layout.box()
     ui.label("New Pool", box)
+    ui.prop(batch_pools, "pool_name", box, "Pool Name")
     ui.prop(batch_pools, "pool_size", box, "Pool Size")
     ui.operator("pools.start", "Start Pool", box)
 
     ui.label("", layout)
-
-    display_pools(ui, layout)
-
-    ui.label("", layout)
-    ui.operator("pools.page", "Refresh Pools", layout)
+    ui.operator("pools.page", "Return to Pools", layout)
     ui.operator("shared.home", "Return Home", layout)
-

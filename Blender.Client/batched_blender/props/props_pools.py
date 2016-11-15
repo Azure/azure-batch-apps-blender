@@ -59,46 +59,47 @@ def format_date(pool):
             "Couldn't format date {0}.".format(pool.creation_time.isoformat()))
         return ""
 
-class PoolDetails(bpy.types.PropertyGroup):
+class PoolDisplayProps(bpy.types.PropertyGroup):
     """
     A display object representing a pool.
-    his class is added to the Blender context.
+    Displayed by :class:`.ui_pools.PoolListUI`.
     """
 
-    id = bpy.props.StringProperty(
-        description="Pool ID",
-        default="")
+    name = bpy.props.StringProperty(
+        description="Pool name")
 
     auto = bpy.props.BoolProperty(
-        description="Auto Pool or manually provisioned",
-        default=True)
+        description="Whether pool is an auto-pool")
 
-    created = bpy.props.StringProperty(
-        description="When pool was created",
+    nodes = bpy.props.IntProperty(
+        description="Number of nodes in pool")
+    
+    delete_checkbox = bpy.props.BoolProperty(
+        description = "Check to delete pool",
+        default = False)
+
+    timestamp = bpy.props.StringProperty(
+        description="Pool created timestamp",
         default="")
-
-    target = bpy.props.IntProperty(
-        description="Pool target size",
-        default=0)
-
-    current = bpy.props.IntProperty(
-        description="Pool current size",
-        default=0)
 
     state = bpy.props.StringProperty(
         description="Pool State",
         default="")
 
-    queue = bpy.props.IntProperty(
-        description="Pool Queue",
-        default=0)
+class PoolProps(bpy.types.PropertyGroup):
+    """
+    Pool Properties,
+    Once instantiated, this class is set to both the Blender context, and
+    assigned to pools.BatchPools.props.
+    """
+    collection = []
 
-class PoolDisplayProps(bpy.types.PropertyGroup):
-    """Display object representing a pool list"""
+    pools = bpy.props.CollectionProperty(
+        type=PoolDisplayProps,
+        description="Pool display list")
 
-    selected = bpy.props.IntProperty(
-        description="Selected pool",
-        default=-1)
+    index = bpy.props.IntProperty(
+        description="Selected pool index")
 
     pool_size = bpy.props.IntProperty(
         description="Number of instances in new pool",
@@ -106,54 +107,68 @@ class PoolDisplayProps(bpy.types.PropertyGroup):
         min=1,
         max=20)
 
-    pools = bpy.props.CollectionProperty(
-        type=PoolDetails,
-        description="Pools currently running")
+    pool_name = bpy.props.StringProperty(
+        description="Name of the new pool",
+        default="")
 
     def add_pool(self, pool):
         """
-        Add a pool reference to the pool display list.
+        Add a pool to both the display and object lists.
 
         """
         log = bpy.context.scene.batch_session.log
         log.debug("Adding pool to ui list {0}".format(pool.id))
 
+        self.collection.append(pool)
         self.pools.add()
         entry = self.pools[-1]
+        if hasattr(pool, 'display_name') and pool.display_name:
+            entry.name = pool.display_name
+        else:
+            entry.name = pool.id
         entry.auto = pool.id.startswith('Blender_auto_')
-        entry.id = pool.display_name if entry.auto else pool.id
-        entry.created = format_date(pool)
-        entry.target = pool.target_dedicated
-        entry.current = pool.current_dedicated
+        entry.timestamp = format_date(pool)
+        entry.nodes = pool.current_dedicated
         entry.state = pool.allocation_state.value
-        entry.queue = 0 #len(pool.jobs)
 
-class PoolsProps(object):
-    """
-    Pools Properties.
-    Once instantiated, this class is assigned to pools.BatchPools.props
-    but is not added to the Blender context.
-    """
-        
-    pools = []
-    display = None
-    thread = None
+        log.debug("Total pools now {0}.".format(len(self.pools)))
+
+    def remove_selected(self):
+        """
+        Remove selected pool from both display and object lists.
+
+        """
+        bpy.context.scene.batch_session.log.debug(
+            "Removing index {0}.".format(self.index))
+
+        self.collection.pop(self.index)
+        self.pools.remove(self.index)
+        self.index = max(self.index - 1, 0)
+
+    def reset(self):
+        """
+        Clear both pool display and object lists.
+
+        """
+        self.collection.clear()
+        self.pools.clear()
+        self.index = 0
+
+        bpy.context.scene.batch_session.log.debug("Reset pool lists.")
+
 
 def register_props():
     """
     Register the pool property classes and assign to the blender
     context under "batch_pools".
-    Also registers pool event handlers.
 
     :Returns:
-        - A :class:`.PoolsProps` object
-
+        - A :class:`.PoolProps` object
     """
-    props_obj = PoolsProps()
-    bpy.types.Scene.batch_pools = \
-        bpy.props.PointerProperty(type=PoolDisplayProps)
 
-    props_obj.display = bpy.context.scene.batch_pools
+    bpy.types.Scene.batch_pools = \
+        bpy.props.PointerProperty(type=PoolProps)
+
     bpy.app.handlers.load_post.append(on_load)
 
-    return props_obj
+    return bpy.context.scene.batch_pools

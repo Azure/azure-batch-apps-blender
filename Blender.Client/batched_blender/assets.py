@@ -130,7 +130,6 @@ class BatchAssets(object):
             return getattr(ui_assets, name)
 
         page_func = map(get_asset_ui, self.pages)
-
         return dict(zip(self.pages, page_func))
 
     def _assets(self, op, context):
