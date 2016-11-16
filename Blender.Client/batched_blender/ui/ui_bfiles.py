@@ -28,9 +28,38 @@
 
 import bpy
 
-def details(ui, layout, bfile):
+class BlobListUI(bpy.types.UIList):
+    """Ui List element for display blobs"""
+
+    def draw_item(self, context, layout, data, item, icon, active_data,
+                  active_propname, index, flt_flag):
+        """Draw UI List"""
+
+        blob = item
+
+        if self.layout_type in {'DEFAULT', 'COMPACT'}:
+            layout.label(blob.name)
+            col = layout.column()
+            col.prop(blob,
+                     "delete_checkbox",
+                     text="",
+                     index=index)
+
+        elif self.layout_type in {'GRID'}:
+            layout.alignment = 'CENTER'
+
+            if flt_flag:
+                layout.enabled = False
+            layout.label(text="", icon_value=icon)
+
+        else:
+            layout.label(text="",
+                         translate=False,
+                         icon_value=icon)
+
+def uilist_controls(ui, layout):
     """
-    Display details on an individual selected bfile.
+    Displays the buttons and labels for the UI List.
 
     :Args:
         - ui (blender :class:`.Interface`): The instance of the Interface
@@ -38,19 +67,25 @@ def details(ui, layout, bfile):
         - layout (blender :class:`bpy.types.UILayout`): The layout object,
             derived from the Interface panel. Used for creating ui
             components.
-        - bfile (:class:`.BfileDetails`): The selected bfile to display.
-
     """
-    ui.label("name: {0}".format(bfile.name), layout)
-    #Programatically given in Byte, but shown in Kibibyte under azure.portal
-    ui.label("size: "+str(round(bfile.size*0.976562/1000,2)), layout)
-    ui.label("last_modified: "+bfile.timestamp, layout)
+    batch_blobs = bpy.context.scene.batch_bfiles
+
+    num_blobs = len(batch_blobs.bfiles)
+    num_display = "Displaying {0} blobs".format(num_blobs)
+
+    ui.label(num_display, layout.row(align=True), align='CENTER')
     row = layout.row(align=True)
-    ui.operator("bfiles.delete", "Delete Blob", row)
 
-def display_bfiles(ui, layout):
+    div = row.split()
+    ui.operator("bfiles.refresh", "Refresh", div, "FILE_REFRESH")
+
+    div = row.split()
+    active = any(a.delete_checkbox for a in batch_blobs.bfiles)
+    ui.operator('bfiles.delete', "Remove", div, "CANCEL", active=active)
+
+def display_uilist(ui, layout):
     """
-    Display bfile list.
+    Displays the UI List that will show all current blobs.
 
     :Args:
         - ui (blender :class:`.Interface`): The instance of the Interface
@@ -58,27 +93,50 @@ def display_bfiles(ui, layout):
         - layout (blender :class:`bpy.types.UILayout`): The layout object,
             derived from the Interface panel. Used for creating ui
             components.
-
     """
-    batch_bfiles = bpy.context.scene.batch_bfiles
-    icons_right = {True: 'DISCLOSURE_TRI_RIGHT_VEC', False: 'TRIA_RIGHT'}
-    icons_down = {True: 'DISCLOSURE_TRI_DOWN_VEC', False: 'TRIA_DOWN'}
-    if not batch_bfiles.bfiles:
-        ui.label("No bfiles found", layout)
-    else:
-        for index, bfile in enumerate(batch_bfiles.bfiles):
-            if index == batch_bfiles.selected:
-                inner_box = layout.box()
-                ui.operator(bfile.name, "Hide details",
-                            inner_box, icons_down[True])
-                details(ui, inner_box, bfile)
-            else:
-                ui.operator(bfile.name, (' '+bfile.name),
-                            layout, icons_right[True])
 
+    batch_blobs = bpy.context.scene.batch_bfiles
+    outerBox = layout.box()
+    row = outerBox.row()
+
+    ui.label("Name", row)
+    ui.label("Remove", row, "RIGHT")
+
+    outerBox.template_list("BlobListUI",
+                           "",
+                           batch_blobs,
+                           "bfiles",
+                           batch_blobs,
+                           "index")
+
+    if len(batch_blobs.bfiles) > 0:
+        display_details(ui, outerBox)
+
+def display_details(ui, outerBox):
+    """
+    Displays the details of the blob selected in the UI List.
+
+    :Args:
+        - ui (blender :class:`.Interface`): The instance of the Interface
+            panel class.
+        - outerBox (blender :class:`bpy.types.UILayout`): The layout object,
+            derived from the Interface panel. Used for creating ui
+            components. In this case the box the details are listed within.
+    """
+    batch_blobs = bpy.context.scene.batch_bfiles
+    col = outerBox.column(align=True)
+
+    #TODO: Display both upload date and file last modified
+    if batch_blobs.index < len(batch_blobs.bfiles):
+        selected = batch_blobs.bfiles[batch_blobs.index]
+        ui.label("Name: {}".format(selected.name), col)
+        ui.label("Size: {}".format(selected.size), col)
+        ui.label("Uploaded: {}".format(selected.uploaded), col)
+        ui.label("Checksum: {}".format(selected.checksum), col)
+    
 def bfiles(ui, layout):
     """
-    Display bfiles page.
+    Display blob management page.
 
     :Args:
         - ui (blender :class:`.Interface`): The instance of the Interface
@@ -88,9 +146,7 @@ def bfiles(ui, layout):
             components.
 
     """
-    batch_bfiles = bpy.context.scene.batch_bfiles
-    display_bfiles(ui, layout)
-    ui.label("", layout)
-    ui.operator("bfiles.page", "Refresh Blobs", layout)
+    uilist_controls(ui, layout)
+    display_uilist(ui, layout)
+    
     ui.operator("shared.home", "Return Home", layout)
-

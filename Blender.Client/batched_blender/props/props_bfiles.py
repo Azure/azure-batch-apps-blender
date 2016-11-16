@@ -27,86 +27,122 @@
 #--------------------------------------------------------------------------
 import bpy
 
-@bpy.app.handlers.persistent
-def on_load(*args):
+def format_date(blobdate):
     """
-    Event handler to refresh bfiles when a new blender scene is opened.
+    Format a blob timestamp for the UI.
 
-    Run on blend file load when page is BFILE.
-    """
-    if bpy.context.scene.batch_session.page in ["BFILES"]:
-        bpy.ops.batch_bfiles.page()
+    :Args:
+        - blobdate
 
-class BfileDetails(bpy.types.PropertyGroup):
+    :Returns:
+        - The created date as a string. If formatting fails,
+          an empty string.
     """
-    A display object representing a bfile.
-    his class is added to the Blender context.
-    """
+    #TODO: Correctly format blob last modified and last uploaded timestamps
+    return str(blobdate)
 
+
+class BlobDisplayProps(bpy.types.PropertyGroup):
+    """
+    A display object representing a blob.
+    Displayed by :class:`.ui_bfiles.BlobListUI`.
+    """
     name = bpy.props.StringProperty(
-        description="Bfile name",
+        description="Blob name",
         default="")
 
-    timestamp = bpy.props.StringProperty(
-        description="Bfile last modified timestamp",
+    uploaded = bpy.props.StringProperty(
+        description="Date the blob was uploaded",
         default="")
 
-    size = bpy.props.IntProperty(
-        description="Bfile size",
-        default=0)
+    size = bpy.props.StringProperty(
+        description="Size of blob",
+        default="")
+
+    checksum = bpy.props.StringProperty(
+        description="Checksum of blob",
+        default="")
+
+    delete_checkbox = bpy.props.BoolProperty(
+        description = "Check to delete blob",
+        default = False)
 
 
-class BfileDisplayProps(bpy.types.PropertyGroup):
-    """Display object representing a bfile list"""
-
-    selected = bpy.props.IntProperty(
-        description="Selected bfile",
-        default=-1)
+class BlobProps(bpy.types.PropertyGroup):
+    """
+    Blob Properties,
+    Once instantiated, this class is set to both the Blender context, and
+    assigned to bfiles.BatchBfiles.props.
+    """
+    collection = []
+    thread = None
 
     bfiles = bpy.props.CollectionProperty(
-        type=BfileDetails,
-        description="Bfiles currently running")
+        type=BlobDisplayProps,
+        description="Blob display list")
 
-    def add_bfile(self, bfile):
+    index = bpy.props.IntProperty(
+        description="Selected blob index")
+
+    def add_blob(self, blob):
         """
-        Add a bfile reference to the bfile display list.
+        Add a blob to both the display and object lists.
 
         """
         log = bpy.context.scene.batch_session.log
-        log.debug("Adding bfile to ui list {0}".format(bfile.name))
-
+        log.debug("Adding blob to ui list {0}".format(blob.name))
+        
+        self.collection.append(blob)
         self.bfiles.add()
         entry = self.bfiles[-1]
-        entry.name = bfile.name
-        entry.timestamp = str(bfile.properties.last_modified)
-        entry.size = bfile.properties.content_length
-
-class BfilesProps(object):
-    """
-    Bfiles Properties.
-    Once instantiated, this class is assigned to bfiles.BatchBfile.props
-    but is not added to the Blender context.
-    """
+        entry.name = blob.name
+        entry.uploaded = format_date(blob.properties.last_modified)
+        size = blob.properties.content_length
+        if size < 1024:
+            entry.size = "{} bytes".format(size)
+        elif size/1024 < 1024:
+            entry.size = "{0:.2f} Kb".format(size/1024)
+        elif size/1024/1024 < 1024:
+            entry.size = "{0:.2f} MB".format(size/1024/1024)
+        else:
+            entry.size = "{0:.2f} GB".format(size/1024/1024/1024)
         
-    bfiles = []
-    display = None
-    thread = None
+        log.debug("Total blobs now {0}.".format(len(self.bfiles)))
+
+    def remove_selected(self):
+        """
+        Remove selected blob from both display and object lists.
+
+        """
+        bpy.context.scene.batch_session.log.debug(
+            "Removing index {0}.".format(self.index))
+
+        self.collection.pop(self.index)
+        self.bfiles.remove(self.index)
+        self.index = max(self.index - 1, 0)
+
+    def reset(self):
+        """
+        Clear both blob display and object lists.
+
+        """
+        self.collection.clear()
+        self.bfiles.clear()
+        self.index = 0
+
+        bpy.context.scene.batch_session.log.debug("Reset blob lists.")
+
 
 def register_props():
     """
-    Register the bfile property classes and assign to the blender
+    Register the blob property classes and assign to the blender
     context under "batch_bfiles".
-    Also registers bfile event handlers.
 
     :Returns:
-        - A :class:`.BfilesProps` object
-
+        - A :class:`.BlobProps` object
     """
-    props_obj = BfilesProps()
+
     bpy.types.Scene.batch_bfiles = \
-        bpy.props.PointerProperty(type=BfileDisplayProps)
+        bpy.props.PointerProperty(type=BlobProps)
 
-    props_obj.display = bpy.context.scene.batch_bfiles
-    bpy.app.handlers.load_post.append(on_load)
-
-    return props_obj
+    return bpy.context.scene.batch_bfiles

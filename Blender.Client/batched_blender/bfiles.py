@@ -46,14 +46,14 @@ class BatchBfiles(object):
 
     pages = ["BFILES"]
 
-    def __init__(self, manager, uploader):
+    def __init__(self, manager, storage):
 
         self.batch = manager
 
         self.ops = self._register_ops()
         self.props = self._register_props()
         self.ui = self._register_ui()
-        self.uploader = uploader
+        self.storage = storage
 
     def display(self, ui, layout):
         """
@@ -93,11 +93,14 @@ class BatchBfiles(object):
         """
         ops = []
         ops.append(BatchOps.register("bfiles.page",
-                                         "Uploaded blobs",
-                                         self._bfiles))
+                                     "Uploaded blobs",
+                                     self._bfiles))
         ops.append(BatchOps.register("bfiles.delete",
-                                         "Delete blob",
-                                         self._delete))
+                                     "Delete blob",
+                                     self._delete))
+        ops.append(BatchOps.register("bfiles.refresh",
+                                     "Refresh blobs",
+                                     self._refresh))
         return ops
 
     def _register_ui(self):
@@ -134,27 +137,21 @@ class BatchBfiles(object):
             - Blender-specific value {'FINISHED'} to indicate the operator has
               completed its action.
         """
-        self.props.display = bpy.context.scene.batch_bfiles
+        session = context.scene.batch_session
+        session.page = "BFILES"
+        self.props = context.scene.batch_bfiles
+        self.props.reset()
 
-        self.props.display.bfiles.clear()
-        self.props.display.selected = -1
 
-        context.scene.batch_session.log.debug("Getting bfile data.")
+        session.log.debug("Getting blob data.")
         container = bpy.context.user_preferences.addons[__package__].preferences.storage_container
 
-        list_bfiles = [b for b in self.uploader.list_blobs(container)]
-        self.props.bfiles = list_bfiles
+        bfiles = [b for b in self.storage.list_blobs(container)]
+        session.log.info("Retrieved {0} blob references.".format(len(bfiles)))
 
-        context.scene.batch_session.log.info(
-            "Retrieved {0} bfile references.".format(len(self.props.bfiles)))
-
-        for bfile in self.props.bfiles:
-            self.props.display.add_bfile(bfile)
-
-        for index, bfile in enumerate(self.props.display.bfiles):
-            self.register_bfile(bfile, index)
-
-        context.scene.batch_session.page = "BFILES"
+        for blob in bfiles:
+            self.props.add_blob(blob)
+        
         return {'FINISHED'}
 
     def _delete(self, op, context):
@@ -173,59 +170,57 @@ class BatchBfiles(object):
             - Blender-specific value {'FINISHED'} to indicate the operator has
               completed its action.
         """
-        bfile = self.get_selected_bfile()
-        context.scene.batch_session.log.debug(
-            "Selected bfile {0}".format(bfile.name))
+        session = context.scene.batch_session
+        delete = self.pending_delete()
+        session.log.info("{0} blobs to be deleted".format(len(delete)))
 
         container = bpy.context.user_preferences.addons[__package__].preferences.storage_container
-        self.uploader.delete_blob(container, bfile.name)
-        context.scene.batch_session.log.info(
-            "Deleted bfile : {0}".format(bfile.name))
+        for index in delete:
+            blob = self.props.collection[index]
+            display = self.props.bfiles[index]
+
+            try:
+                session.log.debug("Deleting blob {0}".format(blob.name))
+                self.storage.delete_blob(container, blob.name)
+            except Exception as exp:
+                session.log.warning("Failed to delete {0}".format(blob))
+                session.log.warning(str(exp))
 
         return bpy.ops.batch_bfiles.page()
 
-    def get_selected_bfile(self):
+    def _refresh(self, op, context):
         """
-        Retrieves the bfile object for the bfile currently selected in
-        the dispaly.
+        The execute method for the bfiles.page operator.
+        Downloads the data on the pools currently running in the service and
+        registers each as an operator for display in the UI.
 
-        :Returns:
-            - A :class:`batch.bfiles.bfile` object.
-        """
-        return self.props.bfiles[self.props.display.selected]
-
-    def register_bfile(self, bfile, index):
-        """
-        Register a bfile as an operator class for dispaly in the UI.
+        Sets the page to BFILES.
 
         :Args:
-            - bfile (:class:`batch.jobs.SubmittedJob`): The bfile to
-              register.
-            - index (int): The index of the job in list currently displayed.
+            - op (:class:`bpy.types.Operator`): An instance of the current
+              operator class.
+            - context (:class:`bpy.types.Context`): The current blender
+              context.
 
         :Returns:
-            - The newly registered operator name (str).
+            - Blender-specific value {'FINISHED'} to indicate the operator has
+              completed its action.
         """
-        name = bfile.name
-        label = "Bfile: {0}".format(bfile.name)
-        index_prop = bpy.props.IntProperty(default=index)
+        return bpy.ops.batch_bfiles.page()
 
-        def execute(self):
-            session = bpy.context.scene.batch_bfiles
-            bpy.context.scene.batch_session.log.debug(
-                "Bfile details opened: {0}, selected: {1}, index {2}".format(
-                    self.enabled,
-                    session.selected,
-                    self.ui_index))
+    def pending_delete(self):
+        """
+        Get a list of the blobs that have been selected for delete. 
 
-            if self.enabled and session.selected == self.ui_index:
-                session.selected = -1
+        :Returns:
+            - A list of the indexes (int) of the items in the display
+              blob list that have been selected for delete.
+        """
 
-            else:
-                session.selected = self.ui_index
+        delete_me = []
 
-        bpy.context.scene.batch_session.log.debug(
-            "Registering {0}".format(name))
+        for index, blob in enumerate(self.props.bfiles):
+            if blob.delete_checkbox:
+                delete_me.append(index)
 
-        return BatchOps.register_expanding(name, label, execute,
-                                               ui_index=index_prop)
+        return delete_me
