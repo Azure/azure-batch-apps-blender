@@ -39,18 +39,23 @@ import importlib
 import os
 import subprocess
 import bpy
+from distutilsversion import StrictVersion
 
 _NEED_INSTALL = False
-_DEPENDENCIES = ['azure.batch', 'azure.storage']
 _APP_DIR = os.path.dirname(__file__)
 
-print("Checking dependencies...")
-for package in _DEPENDENCIES:
-    try:
-        importlib.import_module(package)
-    except ImportError:
-        print("Unable to load {}".format(package))
-        _NEED_INSTALL = True
+
+with open(os.path.join(_APP_DIR, 'requirements.txt'), 'r') as dependencies:
+    for package in dependencies:
+        try:
+            package_ref = package.split('==')
+            module = importlib.import_module(package_ref.replace('-', '.'))
+            if hasattr(module, '__version__') and len(package_ref) > 1:
+                if StrictVersion(package_ref[1]) > StrictVersion(getattr(module, '__version__')):
+                    raise ImportError("Installed package out of date")
+        except ImportError:
+            print("Unable to load {}".format(package))
+            _NEED_INSTALL = True
 
 if _NEED_INSTALL:
     print("One or more dependencies could not be loaded. Attempting to install via Pip.")
@@ -71,9 +76,10 @@ if _NEED_INSTALL:
             print("Failed to install Pip. Please install dependencies manually to continue.")
             raise
         print("Installing dependencies")
-        for package in _DEPENDENCIES:
-            pip.main(['install', package])
-            print("Successfully installed {}".format(package))
+        with open(os.path.join(_APP_DIR, 'requirements.txt'), 'r') as dependencies:
+            for package in dependencies:
+                pip.main(['install', package])
+                print("Successfully installed {}".format(package))
     except:
         raise ImportError("Failed to install dependencies")
 
