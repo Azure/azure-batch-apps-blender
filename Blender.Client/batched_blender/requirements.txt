@@ -1,0 +1,2 @@
+azure-batch==1.1.0
+azure-storage==0.32.0

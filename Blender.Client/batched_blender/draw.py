@@ -169,8 +169,8 @@ class Interface(bpy.types.Panel):
         elif session.page in session.pools.pages:
             session.pools.display(self, self.layout)
 
-        elif session.page in session.history.pages:
-            session.history.display(self, self.layout)
+        elif session.page in session.jobs.pages:
+            session.jobs.display(self, self.layout)
 
         elif session.page in session.bfiles.pages:
             session.bfiles.display(self, self.layout)

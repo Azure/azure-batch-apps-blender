@@ -34,7 +34,7 @@ import os
 from batched_blender.ui import ui_shared
 from batched_blender.submission import BatchSubmission
 from batched_blender.assets import BatchAssets
-from batched_blender.history import BatchHistory
+from batched_blender.jobs import BatchJobs
 from batched_blender.pools import BatchPools
 from batched_blender.bfiles import BatchBfiles
 from batched_blender.utils import BatchOps
@@ -65,7 +65,7 @@ class BatchSettings(object):
         self.page = "LOGIN"
 
         self.submission = None
-        self.history = None
+        self.jobs = None
         self.assets = None
         self.pools = None
         self.bfiles = None
@@ -231,8 +231,8 @@ class BatchSettings(object):
         self.assets = BatchAssets(batch, uploader)
         self.log.debug("Initialised assets module")
 
-        self.history = BatchHistory(batch)
-        self.log.debug("Initialised history module")
+        self.jobs = BatchJobs(batch)
+        self.log.debug("Initialised jobs module")
 
         self.pools = BatchPools(batch)
         self.log.debug("Initialised pool module")

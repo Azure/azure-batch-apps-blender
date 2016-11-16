@@ -193,7 +193,7 @@ class BatchOps(object):
                            invoke=None, **kwargs):
         """
         Register an operator that can be used as an expanding UI
-        component (for example a job in the history page).
+        component (for example a job in the jobs page).
 
         :Args:
             - name (str): The id name of the operator (bl_idname).
