@@ -41,6 +41,7 @@ class PoolListUI(bpy.types.UIList):
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
             layout.label(pool.name)
 
+            #TODO: Only display check box when not transitioning
             col = layout.column()
             col.prop(pool,
                         "delete_checkbox",
@@ -80,11 +81,11 @@ def uilist_controls(ui, layout):
     row = layout.row(align=True)
 
     div = row.split()
-    ui.operator("pools.refresh", "Reset", div, "FILE_REFRESH")
+    ui.operator("pools.refresh", "Refresh", div, "FILE_REFRESH")
 
     div = row.split()
     active = any(a.delete_checkbox for a in batch_pools.pools)
-    ui.operator('pools.delete', "Remove", div, "MOVE_UP_VEC", active=active) #TODO: Change icon
+    ui.operator('pools.delete', "Remove", div, "CANCEL", active=active) #TODO: Change icon
 
     div = row.split()
     ui.operator("pools.create", "Create", div, "ZOOMIN")
@@ -134,12 +135,14 @@ def display_details(ui, outerBox):
     batch_pools = bpy.context.scene.batch_pools
     col = outerBox.column(align=True)
     
+    #TODO: Display node information
     if batch_pools.index < len(batch_pools.pools):
         selected = batch_pools.pools[batch_pools.index]
         ui.label("Pool: {0}".format(selected.name), col)
         ui.label("Status: {0}".format(selected.state), col)
         ui.label("Date Created: {0}".format(selected.timestamp), col)
         ui.label("Size: {0}".format(selected.nodes), col)
+        ui.label("ID: {0}".format(selected.id), col)
 
 def pools(ui, layout):
     """

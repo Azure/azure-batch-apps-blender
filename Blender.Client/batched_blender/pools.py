@@ -147,6 +147,8 @@ class BatchPools(object):
         self.props = context.scene.batch_pools
         self.props.reset()
 
+        #TODO: Filter pools based on id prefix
+        #TODO: Load pools in thread
         session.log.debug("Getting pool data.")
         pools = [p for p in self.batch.pool.list()]
         session.log.info("Retrieved {0} pool references.".format(len(pools)))

@@ -86,6 +86,9 @@ class PoolDisplayProps(bpy.types.PropertyGroup):
         description="Pool State",
         default="")
 
+    id = bpy.props.StringProperty(
+        description="Pool ID")
+
 class PoolProps(bpy.types.PropertyGroup):
     """
     Pool Properties,
@@ -130,6 +133,7 @@ class PoolProps(bpy.types.PropertyGroup):
         entry.timestamp = format_date(pool)
         entry.nodes = pool.current_dedicated
         entry.state = pool.allocation_state.value
+        entry.id = pool.id
 
         log.debug("Total pools now {0}.".format(len(self.pools)))
 
