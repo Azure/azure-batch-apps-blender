@@ -278,7 +278,7 @@ class BatchSubmission(object):
             return pool
 
         elif self.props.display.pool == {"create"}:
-            pool_name = "Blender_Pool_{}".format(BatchUtils.current_time())
+            pool_name = "blender_pool_{}".format(BatchUtils.current_time())
             session.log.info("Creating new pool {}".format(pool_name))
         
             pool_config = BatchUtils.get_pool_config(self.batch)
@@ -299,7 +299,7 @@ class BatchSubmission(object):
             return pool
 
         elif self.props.display.pool == {"new"}:
-            pool_name = "Blender_Auto_Pool_{}".format(BatchUtils.current_time())
+            pool_name = "Blender Auto Pool {}".format(BatchUtils.current_time())
             session.log.info("Creating auto-pool {}".format(pool_name))
 
             pool_config = BatchUtils.get_pool_config(self.batch)
@@ -311,7 +311,7 @@ class BatchSubmission(object):
                 start_task=BatchUtils.install_blender(),
             )
             auto_pool = batch.models.AutoPoolSpecification(
-                auto_pool_id_prefix="Blender_Auto",
+                auto_pool_id_prefix="blender_auto",
                 pool_lifetime_option=batch.models.PoolLifetimeOption.job,
                 keep_alive=False,
                 pool=pool_spec

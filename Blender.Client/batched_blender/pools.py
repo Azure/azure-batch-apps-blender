@@ -147,10 +147,11 @@ class BatchPools(object):
         self.props = context.scene.batch_pools
         self.props.reset()
 
-        #TODO: Filter pools based on id prefix
         #TODO: Load pools in thread
         session.log.debug("Getting pool data.")
-        pools = [p for p in self.batch.pool.list()]
+        options = batch.models.PoolListOptions(
+            filter="startswith(id,'blender')")
+        pools = [p for p in self.batch.pool.list(options)]
         session.log.info("Retrieved {0} pool references.".format(len(pools)))
 
         for pool in pools:
@@ -207,7 +208,7 @@ class BatchPools(object):
               completed its action.
         """
         session = context.scene.batch_session
-        pool_id = "Blender_Pool_{}".format(BatchUtils.current_time())
+        pool_id = "blender_pool_{}".format(BatchUtils.current_time())
         session.log.info("creating pool {}".format(pool_id))
         
         pool_config = BatchUtils.get_pool_config(self.batch)

@@ -141,7 +141,19 @@ def display_details(ui, outerBox):
         ui.label("Percent: {0}".format(selected.percent), col)
         ui.label("Submitted: {0}".format(selected.timestamp), col)
         ui.label("ID: {0}".format(selected.id), col)
-        ui.label("Pool: {0}".format(selected.pool), col)
+        split = col.split(percentage=0.1)
+        ui.label("ID:", split.row(align=True))
+        proprow = split.row(align=True)
+        proprow.active=False
+        ui.prop(selected, 'id', proprow)
+        if selected.pool != 'auto pool':
+            split = col.split(percentage=0.1)
+            ui.label("Pool:", split.row(align=True))
+            proprow = split.row(align=True)
+            proprow.active=False
+            ui.prop(selected, 'pool', proprow)
+        else: 
+            ui.label("Pool: {0}".format(selected.pool), col)
 
 def loading(ui, layout):
     """

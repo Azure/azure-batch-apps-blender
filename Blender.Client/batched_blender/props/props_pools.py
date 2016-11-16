@@ -27,15 +27,6 @@
 #--------------------------------------------------------------------------
 import bpy
 
-@bpy.app.handlers.persistent
-def on_load(*args):
-    """
-    Event handler to refresh pools when a new blender scene is opened.
-
-    Run on blend file load when page is POOLS or CREATE.
-    """
-    if bpy.context.scene.batch_session.page in ["POOLS", "CREATE"]:
-        bpy.ops.batch_pools.page()
 
 def format_date(pool):
     """
@@ -129,7 +120,7 @@ class PoolProps(bpy.types.PropertyGroup):
             entry.name = pool.display_name
         else:
             entry.name = pool.id
-        entry.auto = pool.id.startswith('Blender_auto_')
+        entry.auto = pool.id.startswith('blender_auto_')
         entry.timestamp = format_date(pool)
         entry.nodes = pool.current_dedicated
         entry.state = pool.allocation_state.value
@@ -172,7 +163,5 @@ def register_props():
 
     bpy.types.Scene.batch_pools = \
         bpy.props.PointerProperty(type=PoolProps)
-
-    bpy.app.handlers.load_post.append(on_load)
 
     return bpy.context.scene.batch_pools

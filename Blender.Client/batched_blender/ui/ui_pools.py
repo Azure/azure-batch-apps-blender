@@ -85,7 +85,7 @@ def uilist_controls(ui, layout):
 
     div = row.split()
     active = any(a.delete_checkbox for a in batch_pools.pools)
-    ui.operator('pools.delete', "Remove", div, "CANCEL", active=active) #TODO: Change icon
+    ui.operator('pools.delete', "Remove", div, "CANCEL", active=active)
 
     div = row.split()
     ui.operator("pools.create", "Create", div, "ZOOMIN")
@@ -142,7 +142,14 @@ def display_details(ui, outerBox):
         ui.label("Status: {0}".format(selected.state), col)
         ui.label("Date Created: {0}".format(selected.timestamp), col)
         ui.label("Size: {0}".format(selected.nodes), col)
-        ui.label("ID: {0}".format(selected.id), col)
+        if not selected.auto:
+            split = col.split(percentage=0.1)
+            ui.label("ID:", split.row(align=True))
+            proprow = split.row(align=True)
+            proprow.active=False
+            ui.prop(selected, 'id', proprow)
+        else: 
+            ui.label("ID: {0}".format(selected.id), col)
 
 def pools(ui, layout):
     """

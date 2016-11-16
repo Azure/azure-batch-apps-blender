@@ -39,7 +39,7 @@ import importlib
 import os
 import subprocess
 import bpy
-from distutilsversion import StrictVersion
+from distutils.version import StrictVersion
 
 _NEED_INSTALL = False
 _APP_DIR = os.path.dirname(__file__)
@@ -49,7 +49,7 @@ with open(os.path.join(_APP_DIR, 'requirements.txt'), 'r') as dependencies:
     for package in dependencies:
         try:
             package_ref = package.split('==')
-            module = importlib.import_module(package_ref.replace('-', '.'))
+            module = importlib.import_module(package_ref[0].replace('-', '.'))
             if hasattr(module, '__version__') and len(package_ref) > 1:
                 if StrictVersion(package_ref[1]) > StrictVersion(getattr(module, '__version__')):
                     raise ImportError("Installed package out of date")
