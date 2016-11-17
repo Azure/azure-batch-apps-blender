@@ -86,6 +86,7 @@ class PoolProps(bpy.types.PropertyGroup):
     Once instantiated, this class is set to both the Blender context, and
     assigned to pools.BatchPools.props.
     """
+    stable_states = ["steady"]
     collection = []
 
     pools = bpy.props.CollectionProperty(

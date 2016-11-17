@@ -89,6 +89,7 @@ class JobProps(bpy.types.PropertyGroup):
     Once instantiated, this class is set to both the Blender context, and
     assigned to jobs.BatchJobs.props.
     """
+    stable_states = ["active","completed"]
     collection = []
     thread = None
 

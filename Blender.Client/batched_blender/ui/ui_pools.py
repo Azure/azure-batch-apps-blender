@@ -41,12 +41,15 @@ class PoolListUI(bpy.types.UIList):
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
             layout.label(pool.name)
 
-            #TODO: Only display check box when not transitioning
-            col = layout.column()
-            col.prop(pool,
-                        "delete_checkbox",
-                        text="",
-                        index=index)
+            if pool.state in bpy.context.scene.batch_pools.stable_states:
+                col = layout.column()
+                col.prop(pool,
+                            "delete_checkbox",
+                            text="",
+                            index=index)
+            else:
+                col = layout.column()
+                col.label("", icon="FILE_REFRESH")
 
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
@@ -138,10 +141,15 @@ def display_details(ui, outerBox):
     #TODO: Display node information
     if batch_pools.index < len(batch_pools.pools):
         selected = batch_pools.pools[batch_pools.index]
+        pool_obj = batch_pools.collection[batch_pools.index]
         ui.label("Pool: {0}".format(selected.name), col)
         ui.label("Status: {0}".format(selected.state), col)
         ui.label("Date Created: {0}".format(selected.timestamp), col)
-        ui.label("Size: {0}".format(selected.nodes), col)
+        split = col.column_flow(3)
+        ui.label("Size:", split.row(align=True))
+        ui.prop(selected, 'nodes', split.row(align=True))
+        active = selected.nodes != pool_obj.target_dedicated and selected.state in batch_pools.stable_states
+        ui.operator("pools.resize", "Resize", split.row(align=True), active=active)
         if not selected.auto:
             split = col.split(percentage=0.1)
             ui.label("ID:", split.row(align=True))

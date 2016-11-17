@@ -37,7 +37,6 @@ from batched_blender.props import props_jobs
 
 import azure.batch as batch
 
-import batched_blender.helpers as helpers
 
 class BatchJobs(object):
     """
@@ -103,9 +102,12 @@ class BatchJobs(object):
         ops.append(BatchOps.register("jobs.delete",
                                      "Delete job",
                                      self._delete))
-        #ops.append(BatchOps.register("history.import",
-        #                                 "Import Sequence",
-        #                                 self._import))
+        #ops.append(BatchOps.register("jobs.outputs",
+        #                             "Delete job",
+        #                             self._outputs))
+        #ops.append(BatchOps.register("jobs.download",
+        #                             "Delete job",
+        #                             self._download))
         ops.append(BatchOps.register("jobs.loading",
                                      "Loading jobs",
                                      modal=self._loading_modal,
@@ -247,42 +249,6 @@ class BatchJobs(object):
               completed its action.
         """
         return bpy.ops.batch_jobs.page()
-
-    #def _import(self, op, context, *args):
-    #    job = self.get_selected_job()
-    #    context.scene.batch_session.log.debug(
-    #        "Selected job {0}".format(job.id))
-    #    tasks = self.batch.task.list(job.id)
-    #    prefix = job.display_name
-    #    temp_dir = context.user_preferences.filepaths.temporary_directory
-    #    output_dir = os.path.join(temp_dir, job.id)
-    #    if not os.path.exists(output_dir):
-    #        os.mkdir(output_dir)
-    #    downloaded = []
-    #    print("Output directory", output_dir)
-    #    for t in tasks:
-    #        files = self.batch.file.list_from_task(job.id, t.id, recursive=True)
-    #        for f in files:
-    #            if f.is_directory:
-    #                continue
-    #            if not f.name.startswith('wd/' + prefix):
-    #                continue
-    #            file_name = os.path.join(output_dir, f.name.split('/')[-1])
-    #            print("Downloading", file_name)
-    #            if not os.path.exists(file_name):
-    #                with open(file_name, 'wb') as handle:
-    #                    response = self.batch.file.get_from_task(job.id, t.id, f.name)
-    #                    for data in response:
-    #                        handle.write(data)
-    #            downloaded.append(file_name)
-
-    #    context.scene.sequence_editor_clear()
-    #    context.scene.sequence_editor_create()
-    #    frame = context.scene.batch_submission.start_f #TODO: Get proper frame range based on filename
-    #    for index, file in enumerate(downloaded):
-    #        context.scene.sequence_editor.sequences.new_image(job.id, filepath=file, channel=1, frame_start=frame)
-    #        frame += 1
-    #    return {'FINISHED'}
 
     def _delete(self, op, context, *args):
         """

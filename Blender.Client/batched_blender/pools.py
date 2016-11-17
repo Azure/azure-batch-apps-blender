@@ -39,6 +39,7 @@ from batched_blender.props import props_pools
 import azure.batch as batch
 
 
+
 class BatchPools(object):
     """
     Manager for the display and creation of Batch Apps instance pools.
@@ -106,6 +107,9 @@ class BatchPools(object):
         ops.append(BatchOps.register("pools.create",
                                      "Create pool",
                                      self._create))
+        ops.append(BatchOps.register("pools.resize",
+                                     "Resize pool",
+                                     self._resize))
         return ops
 
     def _register_ui(self):
@@ -178,18 +182,6 @@ class BatchPools(object):
               completed its action.
         """
         return bpy.ops.batch_pools.page()
-        #session = context.scene.batch_session
-        #self.props = context.scene.batch_pools
-        #self.props.reset()
-
-        #session.log.debug("Getting pool data.")
-        #pools = [p for p in self.batch.pool.list()]
-        #session.log.info("Retrieved {0} pool references.".format(len(pools)))
-
-        #for pool in pools:
-        #    self.props.add_pool(pool)
-  
-        #return {'FINISHED'}
 
     def _start(self, op, context):
         """
@@ -279,6 +271,34 @@ class BatchPools(object):
         """
         session = context.scene.batch_session
         session.page = "CREATE"
+        return {'FINISHED'}
+
+    def _resize(self, op, context):
+        """
+        Resize the selected pool.
+
+        :Args:
+            - op (:class:`bpy.types.Operator`): An instance of the current
+              operator class.
+            - context (:class:`bpy.types.Context`): The current blender
+              context.
+
+        :Returns:
+            - Blender-specific value {'FINISHED'} to indicate the operator has
+              completed its action.
+        """
+        session = context.scene.batch_session
+        batch_pools = context.scene.batch_pools
+        selected = batch_pools.pools[batch_pools.index]
+        pool_obj = batch_pools.collection[batch_pools.index]
+
+        session.log.info("Resizing pool: {0} from {1} to {2} nodes".format(
+            pool_obj.id,
+            pool_obj.target_dedicated,
+            selected.nodes))
+        options = {'target_dedicated': selected.nodes,
+                   'node_deallocation_option': 'requeue'}
+        self.batch.pool.resize(pool_obj.id, options)
         return {'FINISHED'}
 
     def pending_delete(self):

@@ -41,12 +41,20 @@ class JobListUI(bpy.types.UIList):
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
             layout.label(job.name)
 
-            #TODO: Only display check box when not transitioning
             col = layout.column()
             col.prop(job,
-                     "delete_checkbox",
+                     "download_checkbox",
                      text="",
                      index=index)
+            if job.status in bpy.context.scene.batch_jobs.stable_states:
+                col = layout.column()
+                col.prop(job,
+                         "delete_checkbox",
+                         text="",
+                         index=index)
+            else:
+                col = layout.column()
+                col.label("", icon="FILE_REFRESH")
 
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
@@ -140,7 +148,6 @@ def display_details(ui, outerBox):
         ui.label("Status: {0}".format(selected.status), col)
         ui.label("Percent: {0}".format(selected.percent), col)
         ui.label("Submitted: {0}".format(selected.timestamp), col)
-        ui.label("ID: {0}".format(selected.id), col)
         split = col.split(percentage=0.1)
         ui.label("ID:", split.row(align=True))
         proprow = split.row(align=True)
