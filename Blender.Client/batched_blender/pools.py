@@ -1,6 +1,6 @@
 ﻿#-------------------------------------------------------------------------
 #
-# Batch Apps Blender Addon
+# Azure Batch Blender Addon
 #
 # Copyright (c) Microsoft Corporation.  All rights reserved.
 #
@@ -36,90 +36,44 @@ from batched_blender.utils import BatchOps, BatchUtils
 from batched_blender.ui import ui_pools
 from batched_blender.props import props_pools
 
-import azure.batch as batch
-
+from azure.batch import models
 
 
 class BatchPools(object):
-    """
-    Manager for the display and creation of Batch Apps instance pools.
-    """
+    """Manager for the display and creation of Batch pools."""
 
     pages = ["POOLS", "CREATE"]
 
     def __init__(self, manager):
-
         self.batch = manager
-
-        self.ops = self._register_ops()
-        self.props = self._register_props()
         self.ui = self._register_ui()
-
-    def display(self, ui, layout):
-        """
-        Invokes the corresponding ui function depending on the session's
-        current page.
-
-        :Args:
-            - ui (blender :class:`.Interface`): The instance of the Interface
-              panel class.
-            - layout (blender :class:`bpy.types.UILayout`): The layout object,
-              derived from the Interface panel. Used for creating ui
-              components.
-
-        :Returns:
-            - Runs the display function for the applicable page.
-        """
-        return self.ui[bpy.context.scene.batch_session.page](ui, layout)
-
-    def _register_props(self):
-        """
-        Registers and retrieves the pools property objects.
-        The dispaly properties are defined in a subclass which is assigned
-        to the scene.batch_pools context.
-
-        :Returns:
-            - :class:`.PoolsProps`
-        """
-        props = props_pools.register_props()
-        return props
+        props_pools.register_props()
+        self._register_ops()
 
     def _register_ops(self):
+        """Registers each pool operator with a batch_pools prefix.
+        Page operators:
+            - "page": Open the pool monitoring view and load pool information.
+            - "start": Open the new pool configuration and creation view.
+            - "run": Calls "create" and returns to the monitoring view.
+            - "create": Creates the newly configured pool.
+            - "delete": Deletes the selected pools.
+            - "refresh": Refresh the pool information in the monitoring view.
+            - "resize": Resize the node count of the selected pool.
         """
-        Registers each pool operator with a batch_pools prefix.
-
-        :Returns:
-            - A list of the names (str) of the registered pool operators.
-        """
-        ops = []
-        ops.append(BatchOps.register("pools.page",
-                                     "Running pools",
-                                     self._pools))
-        ops.append(BatchOps.register("pools.start",
-                                     "Start new pool",
-                                     self._start))
-        ops.append(BatchOps.register("pools.delete",
-                                     "Delete pool",
-                                     self._delete))
-        ops.append(BatchOps.register("pools.refresh",
-                                     "Refresh pools",
-                                     self._refresh))
-        ops.append(BatchOps.register("pools.create",
-                                     "Create pool",
-                                     self._create))
-        ops.append(BatchOps.register("pools.resize",
-                                     "Resize pool",
-                                     self._resize))
-        return ops
+        BatchOps.register("pools.page", "View running pools", self._pools)
+        BatchOps.register("pools.start", "Configure a new pool", self._start)
+        BatchOps.register("pools.run", "Create the pool", self._run)
+        BatchOps.register("pools.create", "Internal: Create the pool", self._create)
+        BatchOps.register("pools.delete", "Delete pool", self._delete)
+        BatchOps.register("pools.refresh", "Refresh pools", self._refresh)
+        BatchOps.register("pools.resize", "Resize pool", self._resize)
 
     def _register_ui(self):
-        """
-        Matches the pools and create pool pages with their corresponding
+        """Maps the pools and create pool pages with their corresponding
         ui functions.
 
-        :Returns:
-            - A dictionary mapping the page name to its corresponding
-              ui function.
+        :rtype: dict of str, func pairs 
         """
         def get_pools_ui(name):
             name = name.lower()
@@ -129,163 +83,151 @@ class BatchPools(object):
         return dict(zip(self.pages, page_func))
 
     def _pools(self, op, context):
-        """
-        The execute method for the pools.page operator.
-        Downloads the data on the pools currently running in the service and
-        registers each as an operator for display in the UI.
+        """The execute method for the pools.page operator.
+        Retrives the data on the pools currently running in the service and
+        displays in a pool monitoring view. Sets the page context to 'POOLS'.
 
-        Sets the page to POOLS.
-
-        :Args:
-            - op (:class:`bpy.types.Operator`): An instance of the current
-              operator class.
-            - context (:class:`bpy.types.Context`): The current blender
-              context.
-
-        :Returns:
-            - Blender-specific value {'FINISHED'} to indicate the operator has
-              completed its action.
+        :param op: An instance of the current operator class.
+        :type op: :class:`bpy.types.Operator`
+        :param context: The current Blender scene context.
+        :type context: :class:`bpy.types.Context`
+        :returns: Blender operator response; {'FINISHED'} if
+         successful else {'CANCELLED'}
+        :rtype: set
         """
         session = context.scene.batch_session
-        session.page = "POOLS"
-        self.props = context.scene.batch_pools
-        self.props.reset()
+        props = context.scene.batch_pools
+        props.reset()
 
         #TODO: Load pools in thread
         session.log.debug("Getting pool data.")
-        options = batch.models.PoolListOptions(
+        options = models.PoolListOptions(
             filter="startswith(id,'blender')")
         pools = [p for p in self.batch.pool.list(options)]
         session.log.info("Retrieved {0} pool references.".format(len(pools)))
-
         for pool in pools:
-            self.props.add_pool(pool)
-  
+            props.add_pool(pool)
+        session.page = "POOLS"
         return {'FINISHED'}
 
-    def _refresh(self, op, context):
+    def _start(self, op, context):
+        """The execute method for the pools.start operator.
+        Opens the pool configure and create view. Sets the page context
+        to 'CREATE'.
+
+        :param op: An instance of the current operator class.
+        :type op: :class:`bpy.types.Operator`
+        :param context: The current Blender scene context.
+        :type context: :class:`bpy.types.Context`
+        :returns: Blender operator response; {'FINISHED'} if
+         successful else {'CANCELLED'}
+        :rtype: set
         """
-        The execute method for the pools.page operator.
-        Downloads the data on the pools currently running in the service and
-        registers each as an operator for display in the UI.
+        context.scene.batch_session.page = "CREATE"
+        return {'FINISHED'}
 
-        Sets the page to POOLS.
+    def _run(self, op, context):
+        """The execute method for the pools.run operator.
+        Invokes the pool create operation followed by the pool page
+        operation.
 
-        :Args:
-            - op (:class:`bpy.types.Operator`): An instance of the current
-              operator class.
-            - context (:class:`bpy.types.Context`): The current blender
-              context.
-
-        :Returns:
-            - Blender-specific value {'FINISHED'} to indicate the operator has
-              completed its action.
+        :param op: An instance of the current operator class.
+        :type op: :class:`bpy.types.Operator`
+        :param context: The current Blender scene context.
+        :type context: :class:`bpy.types.Context`
+        :returns: Blender operator response; {'FINISHED'} if
+         successful else {'CANCELLED'}
+        :rtype: set
         """
+        bpy.ops.batch_pools.create()
         return bpy.ops.batch_pools.page()
 
-    def _start(self, op, context):
-        """
-        The execute method for the pools.start operator.
-        Starts a newly created pool, then calls the pools.page operator
-        to refresh the pool list in the display and return to the POOLS page.
+    def _create(self, op, context):
+        """The execute method for the pools.create operator.
+        Starts a newly created pool without altering the current view.
+        Only called internally.
 
-        :Args:
-            - op (:class:`bpy.types.Operator`): An instance of the current
-              operator class.
-            - context (:class:`bpy.types.Context`): The current blender
-              context.
-
-        :Returns:
-            - Blender-specific value {'FINISHED'} to indicate the operator has
-              completed its action.
+        :param op: An instance of the current operator class.
+        :type op: :class:`bpy.types.Operator`
+        :param context: The current Blender scene context.
+        :type context: :class:`bpy.types.Context`
+        :returns: Blender operator response; {'FINISHED'} if
+         successful else {'CANCELLED'}
+        :rtype: set
         """
         session = context.scene.batch_session
+        props = context.scene.batch_pools
         pool_id = "blender_pool_{}".format(BatchUtils.current_time())
-        session.log.info("creating pool {}".format(pool_id))
+        session.log.info("Creating pool {}".format(pool_id))
+        name = props.pool_name if props.pool_name else pool_id
         
         pool_config = BatchUtils.get_pool_config(self.batch)
-        pool = batch.models.PoolAddParameter(
+        pool = models.PoolAddParameter(
             pool_id,
             bpy.context.user_preferences.addons[__package__].preferences.vm_type,
-            display_name=self.props.pool_name,
+            display_name=name,
             virtual_machine_configuration=pool_config,
-            target_dedicated=self.props.pool_size,
+            target_dedicated=props.pool_size,
             start_task=BatchUtils.install_blender(),
         )
         self.batch.pool.add(pool)
-
         session.log.info(
             "Started new pool with ID: {0}".format(pool_id))
-
-        return bpy.ops.batch_pools.page()
+        return {'FINISHED'}
 
     def _delete(self, op, context):
-        """
-        The execute method for the pools.delete operator.
-        Delete the currently selected pool, then calls the pools.page
+        """The execute method for the pools.delete operator.
+        Delete the currently selected pools, then calls the pools.page
         operator to refresh the pool list in the display.
 
-        :Args:
-            - op (:class:`bpy.types.Operator`): An instance of the current
-              operator class.
-            - context (:class:`bpy.types.Context`): The current blender
-              context.
-
-        :Returns:
-            - Blender-specific value {'FINISHED'} to indicate the operator has
-              completed its action.
+        :param op: An instance of the current operator class.
+        :type op: :class:`bpy.types.Operator`
+        :param context: The current Blender scene context.
+        :type context: :class:`bpy.types.Context`
+        :returns: Blender operator response; {'FINISHED'} if
+         successful else {'CANCELLED'}
+        :rtype: set
         """
         session = context.scene.batch_session
+        props = context.scene.batch_pools
         delete = self.pending_delete()
-
         session.log.info("{0} pools to be deleted".format(len(delete)))
-
         for index in delete:
-            pool = self.props.collection[index]
-            display = self.props.pools[index]
-
+            pool = props.collection[index]
             try:
                 session.log.debug("Deleting pool {0}".format(pool.id))
                 self.batch.pool.delete(pool.id)
             except Exception as exp:
                 session.log.warning("Failed to delete {0}".format(pool.id))
                 session.log.warning(str(exp))
-
         return bpy.ops.batch_pools.page()
 
-    def _create(self, op, context):
-        """
-        The execute method for the pools.create operator.
-        Display the UI components to create a new pool by setting the page
-        to CREATE.
+    def _refresh(self, op, context):
+        """The execute method for the pools.refresh operator.
+        Calls the page operator to reset the pool monitoring view.
 
-        :Args:
-            - op (:class:`bpy.types.Operator`): An instance of the current
-              operator class.
-            - context (:class:`bpy.types.Context`): The current blender
-              context.
-
-        :Returns:
-            - Blender-specific value {'FINISHED'} to indicate the operator has
-              completed its action.
+        :param op: An instance of the current operator class.
+        :type op: :class:`bpy.types.Operator`
+        :param context: The current Blender scene context.
+        :type context: :class:`bpy.types.Context`
+        :returns: Blender operator response; {'FINISHED'} if
+         successful else {'CANCELLED'}
+        :rtype: set
         """
-        session = context.scene.batch_session
-        session.page = "CREATE"
-        return {'FINISHED'}
+        return bpy.ops.batch_pools.page()
 
     def _resize(self, op, context):
-        """
-        Resize the selected pool.
+        """The execute method for the pools.resize operator.
+        Resize the number of nodes in the selected pool. Refreshes
+        the monitoring view on completion.
 
-        :Args:
-            - op (:class:`bpy.types.Operator`): An instance of the current
-              operator class.
-            - context (:class:`bpy.types.Context`): The current blender
-              context.
-
-        :Returns:
-            - Blender-specific value {'FINISHED'} to indicate the operator has
-              completed its action.
+        :param op: An instance of the current operator class.
+        :type op: :class:`bpy.types.Operator`
+        :param context: The current Blender scene context.
+        :type context: :class:`bpy.types.Context`
+        :returns: Blender operator response; {'FINISHED'} if
+         successful else {'CANCELLED'}
+        :rtype: set
         """
         session = context.scene.batch_session
         batch_pools = context.scene.batch_pools
@@ -298,22 +240,31 @@ class BatchPools(object):
             selected.nodes))
         options = {'target_dedicated': selected.nodes,
                    'node_deallocation_option': 'requeue'}
-        self.batch.pool.resize(pool_obj.id, options)
-        return {'FINISHED'}
+        try:
+            self.batch.pool.resize(pool_obj.id, options)
+        except Exception as exp:
+            session.log.warning("Failed to resize {0}".format(pool_obj.id))
+            session.log.warning(str(exp))
+        return bpy.ops.batch_pools.page()
+
+    def display(self, ui, layout):
+        """Invokes the corresponding ui function depending on the session's
+        current page.
+
+        :param ui: The instance of the Interface panel class.
+        :type ui: :class:`.Interface`
+        :param layout: The layout object, used for creating and placing ui components.
+        :type layout: :class:`bpy.types.UILayout`
+        :returns: The result of the UI operator - usually {'FINISHED'}
+        :rtype: set
+        """
+        return self.ui[bpy.context.scene.batch_session.page](ui, layout)
 
     def pending_delete(self):
+        """Get a list of the pools that have been selected for delete. 
+
+        :returns: Indexes of the selected pools.
+        :rtype: List of int
         """
-        Get a list of the pools that have been selected for delete. 
-
-        :Returns:
-            - A list of the indexes (int) of the items in the display
-              pool list that have been selected for delete.
-        """
-
-        delete_me = []
-
-        for index, pool in enumerate(self.props.pools):
-            if pool.delete_checkbox:
-                delete_me.append(index)
-
-        return delete_me
+        pools = bpy.context.scene.batch_pools.pools
+        return [i for i, pool in enumerate(pools) if pool.delete_checkbox]
