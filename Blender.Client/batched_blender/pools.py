@@ -142,7 +142,7 @@ class BatchPools(object):
         bpy.ops.batch_pools.create()
         return bpy.ops.batch_pools.page()
 
-    def _create(self, op, context):
+    def _create(self, op, context, **kwargs):
         """The execute method for the pools.create operator.
         Starts a newly created pool without altering the current view.
         Only called internally.
@@ -157,19 +157,11 @@ class BatchPools(object):
         """
         session = context.scene.batch_session
         props = context.scene.batch_pools
-        pool_id = "blender_pool_{}".format(BatchUtils.current_time())
+        pool_id = kwargs.get('id', "blender_pool_{}".format(BatchUtils.current_time()))
         session.log.info("Creating pool {}".format(pool_id))
         name = props.pool_name if props.pool_name else pool_id
-        
-        pool_config = BatchUtils.get_pool_config(self.batch)
         pool = models.PoolAddParameter(
-            pool_id,
-            bpy.context.user_preferences.addons[__package__].preferences.vm_type,
-            display_name=name,
-            virtual_machine_configuration=pool_config,
-            target_dedicated=props.pool_size,
-            start_task=BatchUtils.install_blender(),
-        )
+            pool_id, **BatchUtils.get_pool_config(self.batch, name))
         self.batch.pool.add(pool)
         session.log.info(
             "Started new pool with ID: {0}".format(pool_id))

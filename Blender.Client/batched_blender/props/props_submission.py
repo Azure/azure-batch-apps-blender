@@ -67,7 +67,6 @@ def formatcheck(*args):
     """
     submission = bpy.context.scene.batch_submission
     session = bpy.context.scene.batch_session
-
     if session.page not in ["SUBMIT"]:
         return
 
@@ -75,7 +74,6 @@ def formatcheck(*args):
     if format not in submission.supported_formats:
         submission.valid_format = False
         submission.image_format = 'PNG'
-
     else:
         submission.valid_format = True
         submission.image_format = format
@@ -90,17 +88,16 @@ def on_load(*args):
 
     """
     submission = bpy.context.scene.batch_submission
-
     submission.start_f = bpy.context.scene.frame_start
     submission.end_f = bpy.context.scene.frame_end
 
 
-class SubmissionDisplayProps(bpy.types.PropertyGroup):
-    """
-    A display object representing a new job submission.
+class SubmissionProps(bpy.types.PropertyGroup):
+    """A display object representing a new job submission.
     This class is added to the Blender context.
     """
-      
+    thread = None
+
     title = bpy.props.StringProperty(
         description="Job Title",
         maxlen=64,
@@ -122,6 +119,10 @@ class SubmissionDisplayProps(bpy.types.PropertyGroup):
         description="Image Format",
         default='PNG')
 
+    video_merge = bpy.props.BoolProperty(
+        description="Create video from rendered frames",
+        default=False)
+
     supported_formats = {
         'PNG': 'PNG',
         'JPEG': 'JPEG',
@@ -136,12 +137,6 @@ class SubmissionDisplayProps(bpy.types.PropertyGroup):
         'OPEN_EXR_MULTILAYER': 'MULTILAYER',
         'TARGA_RAW': 'RAWTGA'}
 
-    pool_size = bpy.props.IntProperty(
-        description="Number of instances in pool",
-        default=1,
-        min=1,
-        max=20)
-
     valid_range = bpy.props.BoolProperty(
         description="Valid frame range",
         default=True)
@@ -150,8 +145,8 @@ class SubmissionDisplayProps(bpy.types.PropertyGroup):
         description="Valid image format",
         default=True)
 
-    pool = bpy.props.EnumProperty(
-        items=[#("new", "Auto Pool", "Auto provision a pool for this job"),
+    pool_type = bpy.props.EnumProperty(
+        items=[("auto", "Auto Pool", "Auto provision a pool for this job"),
                ("reuse", "Use Pool ID", "Reuse an existing persistent pool"),
                ("create", "Create Pool", "Create a new persistent pool")],
         description="Pool on which job will run",
@@ -162,22 +157,9 @@ class SubmissionDisplayProps(bpy.types.PropertyGroup):
         description="Existing Pool ID",
         default="")
 
-
-class SubmissionProps(object):
-    """
-    Submission Properties.
-    Once instantiated, this class is assigned to submission.BatchSubmission.props
-    but is not added to the Blender context.
-    """
-
-    thread = None
-    display = None
-
-    def register_handlers(self):
-        """
-        Register submission event handlers.
-
-        """
+    @staticmethod
+    def register_handlers():
+        """Register submission event handlers."""
         bpy.app.handlers.load_post.append(on_load)
         bpy.app.handlers.scene_update_post.append(framecheck)
         bpy.app.handlers.scene_update_post.append(formatcheck)
@@ -185,20 +167,10 @@ class SubmissionProps(object):
 
 
 def register_props():
-    """
-    Register the submission property classes and assign to the blender
+    """Register the submission property classes and assign to the Blender
     context under "batch_submission".
     Also registers submission event handlers.
-
-    :Returns:
-        - A :class:`.SubmissionProps` object
-    
     """
-    props_obj = SubmissionProps()
     bpy.types.Scene.batch_submission = \
-        bpy.props.PointerProperty(type=SubmissionDisplayProps)
-
-    props_obj.display = bpy.context.scene.batch_submission
-    props_obj.register_handlers()
-
-    return props_obj
+        bpy.props.PointerProperty(type=SubmissionProps)
+    SubmissionProps.register_handlers()

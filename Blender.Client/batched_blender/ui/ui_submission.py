@@ -30,41 +30,34 @@ import bpy
 
 
 def static(ui, layout, active):
-    """
-    Display static job details reflecting global render settings.
+    """Display static job details reflecting global render settings.
 
-    :Args:
-        - ui (blender :class:`.Interface`): The instance of the Interface
-            panel class.
-        - layout (blender :class:`bpy.types.UILayout`): The layout object,
-            derived from the Interface panel. Used for creating ui
-            components.
-        - active (bool): Whether UI components are enabled.
-
+    :param ui: The instance of the Interface panel class.
+    :type ui: :class:`.Interface`
+    :param layout: The layout object, used for creating and placing ui components.
+    :type layout: :class:`bpy.types.UILayout`
+    :param active: Whether UI components are enabled.
+    :type active: bool
     """
     width = int(bpy.context.scene.render.resolution_x*\
         (bpy.context.scene.render.resolution_percentage/100))
     height = int(bpy.context.scene.render.resolution_y*\
         (bpy.context.scene.render.resolution_percentage/100))
     output = bpy.context.scene.batch_submission.image_format
-    
     ui.label("Width: {0}".format(width), layout.row(), active=active)
     ui.label("Height: {0}".format(height), layout.row(), active=active)
     ui.label("Output: {0}".format(output), layout.row(), active=active)
 
 
 def variable(ui, layout, active):
-    """
-    Display frame selection controls.
+    """Display frame selection controls.
 
-    :Args:
-        - ui (blender :class:`.Interface`): The instance of the Interface
-            panel class.
-        - layout (blender :class:`bpy.types.UILayout`): The layout object,
-            derived from the Interface panel. Used for creating ui
-            components.
-        - active (bool): Whether UI components are enabled.
-
+    :param ui: The instance of the Interface panel class.
+    :type ui: :class:`.Interface`
+    :param layout: The layout object, used for creating and placing ui components.
+    :type layout: :class:`bpy.types.UILayout`
+    :param active: Whether UI components are enabled.
+    :type active: bool
     """
     ui.prop(bpy.context.scene.batch_submission, "start_f", layout.row(),
             label="Start Frame ", active=active)
@@ -73,85 +66,68 @@ def variable(ui, layout, active):
 
 
 def pool_select(ui, layout, active):
-    """
-    Display pool selection controls.
+    """Display pool selection controls.
 
-    :Args:
-        - ui (blender :class:`.Interface`): The instance of the Interface
-            panel class.
-        - layout (blender :class:`bpy.types.UILayout`): The layout object,
-            derived from the Interface panel. Used for creating ui
-            components.
-        - active (bool): Whether UI components are enabled.
-
+    :param ui: The instance of the Interface panel class.
+    :type ui: :class:`.Interface`
+    :param layout: The layout object, used for creating and placing ui components.
+    :type layout: :class:`bpy.types.UILayout`
+    :param active: Whether UI components are enabled.
+    :type active: bool
     """
     ui.label("", layout)
-    ui.prop(bpy.context.scene.batch_submission, "pool", layout.row(),
+    ui.prop(bpy.context.scene.batch_submission, "pool_type", layout.row(),
             label=None, expand=True, active=active)
-
-    if bpy.context.scene.batch_submission.pool == {"reuse"}:
+    if bpy.context.scene.batch_submission.pool_type == {"reuse"}:
         ui.label("Use an existing persistant pool by ID", layout.row(), active=active)
         ui.prop(bpy.context.scene.batch_submission, "pool_id",
                 layout.row(), active=active)
-
-    else:   # bpy.context.scene.batch_submission.pool == {"create"}:
+    elif bpy.context.scene.batch_submission.pool_type == {"create"}:
         ui.label("Create a new persistant pool", layout.row(), active=active)
+        ui.prop(bpy.context.scene.batch_pools, "pool_name",
+                layout.row(), "Name:", active=active)
         ui.prop(bpy.context.scene.batch_pools, "pool_size",
-                layout.row(), "Number of instances:", active=active)
-
-    #else:
-    #    ui.label("Auto provision a pool for this job", layout.row(),
-    #             active=active)
-    #    ui.prop(bpy.context.scene.batch_submission, "pool_size",
-    #            layout.row(), "Number of instances:", active=active)
+                layout.row(), "Number of nodes:", active=active)
+    else:
+        ui.label("Auto provision a pool for this job", layout.row(), active=active)
+        ui.prop(bpy.context.scene.batch_pools, "pool_size",
+                layout.row(), "Number of nodes:", active=active)
 
 def pre_submission(ui, layout):
-    """
-    Display any warnings before job submission.
+    """Display any warnings before job submission.
 
-    :Args:
-        - ui (blender :class:`.Interface`): The instance of the Interface
-            panel class.
-        - layout (blender :class:`bpy.types.UILayout`): The layout object,
-            derived from the Interface panel. Used for creating ui
-            components.
-
+    :param ui: The instance of the Interface panel class.
+    :type ui: :class:`.Interface`
+    :param layout: The layout object, used for creating and placing ui components.
+    :type layout: :class:`bpy.types.UILayout`
     """
     if not bpy.context.scene.batch_submission.valid_format:
         ui.label("Warning: Output format {0}".format(
             bpy.context.scene.render.image_settings.file_format), layout)
-
         ui.label("not supported. Using PNG instead", layout)
         row = layout.row(align=True)
         row.alert=True
         ui.operator("submission.start", "Submit Job", row)
-        
     elif not bpy.context.scene.batch_submission.valid_range:
         ui.label("Warning: Selected frame range falls", layout)
         ui.label("outside global render range", layout)
         row = layout.row(align=True)
         row.alert=True
         ui.operator("submission.start", "Submit Job", row)
-
     else:
         ui.label("", layout)
         ui.label("", layout)
         ui.operator("submission.start", "Submit Job", layout)
-    
     ui.operator("shared.home", "Return Home", layout)
 
 
 def post_submission(ui, layout):
-    """
-    Display the job processing message.
+    """Display the job processing message.
 
-    :Args:
-        - ui (blender :class:`.Interface`): The instance of the Interface
-            panel class.
-        - layout (blender :class:`bpy.types.UILayout`): The layout object,
-            derived from the Interface panel. Used for creating ui
-            components.
-
+    :param ui: The instance of the Interface panel class.
+    :type ui: :class:`.Interface`
+    :param layout: The layout object, used for creating and placing ui components.
+    :type layout: :class:`bpy.types.UILayout`
     """
     ui.label("Submission now processing.", layout.row(align=True), "CENTER")
     ui.label("See console for progress.", layout.row(align=True), "CENTER")
@@ -159,59 +135,44 @@ def post_submission(ui, layout):
 
 
 def submit(ui, layout):
-    """
-    Display new job submission page.
+    """Display new job submission page.
 
-    :Args:
-        - ui (blender :class:`.Interface`): The instance of the Interface
-            panel class.
-        - layout (blender :class:`bpy.types.UILayout`): The layout object,
-            derived from the Interface panel. Used for creating ui
-            components.
-
+    :param ui: The instance of the Interface panel class.
+    :type ui: :class:`.Interface`
+    :param layout: The layout object, used for creating and placing ui components.
+    :type layout: :class:`bpy.types.UILayout`
     """
     ui.prop(bpy.context.scene.batch_submission, "title", layout,
             label="Job name ", active=True)
-
     static(ui, layout, True)
     variable(ui, layout, True)
     pool_select(ui, layout, True)
     pre_submission(ui, layout)
 
 def processing(ui, layout):
-    """
-    Display job submission processing page.
+    """Display job submission processing page.
 
-    :Args:
-        - ui (blender :class:`.Interface`): The instance of the Interface
-            panel class.
-        - layout (blender :class:`bpy.types.UILayout`): The layout object,
-            derived from the Interface panel. Used for creating ui
-            components.
-
+    :param ui: The instance of the Interface panel class.
+    :type ui: :class:`.Interface`
+    :param layout: The layout object, used for creating and placing ui components.
+    :type layout: :class:`bpy.types.UILayout`
     """
     ui.prop(bpy.context.scene.batch_submission, "title", layout.row(),
             label="Job name ", active=False)
-
     static(ui, layout, False)
     variable(ui, layout, False)
     pool_select(ui, layout, False)
     post_submission(ui, layout)
-
     ui.label("", layout)
 
 
 def submitted(ui, layout):
-    """
-    Display job submitted page.
+    """Display job submitted page.
 
-    :Args:
-        - ui (blender :class:`.Interface`): The instance of the Interface
-            panel class.
-        - layout (blender :class:`bpy.types.UILayout`): The layout object,
-            derived from the Interface panel. Used for creating ui
-            components.
-
+    :param ui: The instance of the Interface panel class.
+    :type ui: :class:`.Interface`
+    :param layout: The layout object, used for creating and placing ui components.
+    :type layout: :class:`bpy.types.UILayout`
     """
     sublayout = layout.box()
     ui.label("Submission Successfull!", sublayout.row(align=True), "CENTER")

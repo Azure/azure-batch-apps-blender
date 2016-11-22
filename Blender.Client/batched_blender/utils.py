@@ -27,9 +27,9 @@
 #--------------------------------------------------------------------------
 
 import datetime
+import hashlib
 import os
 import sys
-import hashlib
 
 import bpy
 import isodate
@@ -46,57 +46,73 @@ class BatchUtils(object):
             "sudo apt-get update",
             "sudo apt-get -q -y install blender",
             "sudo apt-get -y install python-pip",
-            "pip install azure-storage"
+            "pip install azure-storage==0.32.0"
             ]
 
     @staticmethod
     def current_time():
+        """Get the current date/time as a clean string."""
         now = datetime.datetime.now().isoformat()
         now = bpy.path.clean_name(now).replace('T', '-').replace('_', '-')
         return now
 
     @staticmethod
     def install_blender():
+        """Combine the Blender install commands into a commandline
+        in a start task for the pool.
+
+        :rtype: `azure.batch.models.StartTask`
+        """
         start_task = models.StartTask(
                 command_line="/bin/bash -c 'set -e; set -o pipefail; {}; wait'".format('; '.join(BatchUtils.install_commands)),
                 run_elevated=True,
                 wait_for_success=True)
         return start_task
 
-    def get_pool_config(batch):
-        """
-        Gets a virtual machine configuration for the specified distro and version
-        from the list of Azure Virtual Machines Marketplace images verified to be
-        compatible with the Batch service.
-        :param batch_service_client: A Batch service client.
-        :type batch_service_client: `azure.batch.BatchServiceClient`
-        :param str distro: The Linux distribution that should be installed on the
-        compute nodes, e.g. 'Ubuntu' or 'CentOS'. Supports partial string matching.
-        :param str version: The version of the operating system for the compute
-        nodes, e.g. '15' or '14.04'. Supports partial string matching.
+    @staticmethod
+    def get_auto_pool(batch, name):
+        auto_pool = models.AutoPoolSpecification(
+            auto_pool_id_prefix="blender_auto",
+            pool_lifetime_option=models.PoolLifetimeOption.job,
+            keep_alive=False,
+            pool=BatchUtils.get_pool_config(batch, name)
+        )
+        return auto_pool
+
+    @staticmethod
+    def get_pool_config(batch, name):
+        """Gets a virtual machine configuration for the specified distro
+        and version from the list of Azure Virtual Machines Marketplace
+        images verified to be compatible with the Batch service.
+
+        :param batch: A Batch service client.
+        :type batch: `azure.batch.BatchServiceClient`
         :rtype: `azure.batch.models.VirtualMachineConfiguration`
-        :return: A virtual machine configuration specifying the Virtual Machines
+        :returns: A virtual machine configuration specifying the Virtual Machines
         Marketplace image and node agent SKU to install on the compute nodes in
         a pool.
         """
         distro = bpy.context.user_preferences.addons[__package__].preferences.vm_distro
         version = bpy.context.user_preferences.addons[__package__].preferences.vm_version
         node_agent_skus = batch.account.list_node_agent_skus()
-
         node_agent = next(agent for agent in node_agent_skus
                           for image_ref in agent.verified_image_references
                           if distro.lower() in image_ref.offer.lower() and
                           version.lower() in image_ref.sku.lower())
-
         img_ref = [image_ref for image_ref in node_agent.verified_image_references
                    if distro.lower() in image_ref.offer.lower() and
                    version.lower() in image_ref.sku.lower()][-1]
-
         vm_config = models.VirtualMachineConfiguration(
             image_reference=img_ref,
             node_agent_sku_id=node_agent.id)
-
-        return vm_config
+        
+        pool_config = {
+            "display_name": name,
+            "vm_size": bpy.context.user_preferences.addons[__package__].preferences.vm_type,
+            "virtual_machine_configuration": vm_config,
+            "target_dedicated": bpy.context.scene.batch_pools.pool_size,
+            "start_task": BatchUtils.install_blender()}
+        return pool_config
 
 class BatchOps(object):
     """
@@ -187,38 +203,6 @@ class BatchOps(object):
 
         bpy.utils.register_class(new_op)
         return name
-
-    @staticmethod
-    def register_expanding(name, label, execute, modal=None,
-                           invoke=None, **kwargs):
-        """
-        Register an operator that can be used as an expanding UI
-        component (for example a job in the jobs page).
-
-        :Args:
-            - name (str): The id name of the operator (bl_idname).
-            - label (str): The description of the operator (bl_label).
-            - execute (func): The execute function.
-
-        :Kwargs:
-            - modal (func): The modal function if applicable.
-            - invoke (func): The invoke function if applicable.
-            - Any additional attributes or functions to be added to the class.
-
-        :Returns:
-            - The ID name of the registered operator with the
-              prefix ``batch_``.
-
-        """
-        kwargs.update({'enabled':bpy.props.BoolProperty(default=False)})
-
-        def op_execute(self, context):
-            execute(self)
-            self.enabled = not self.enabled
-            return {'FINISHED'}
-
-        return BatchOps.register(name, label, op_execute, modal,
-                                     invoke, **kwargs)
 
 
 class BatchAsset(object):

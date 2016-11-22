@@ -35,34 +35,28 @@ class PoolListUI(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data,
                   active_propname, index, flt_flag):
         """Draw UI List"""
-
         pool = item
 
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
             layout.label(pool.name)
-
-            if pool.state in bpy.context.scene.batch_pools.stable_states:
+            if pool.auto:
                 col = layout.column()
-                col.prop(pool,
-                            "delete_checkbox",
-                            text="",
-                            index=index)
+                col.label("", icon="SPACE2")
+            elif pool.state in bpy.context.scene.batch_pools.stable_states:
+                col = layout.column()
+                col.prop(pool, "delete_checkbox", text="", index=index)
             else:
                 col = layout.column()
                 col.label("", icon="FILE_REFRESH")
 
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
-
             if flt_flag:
                 layout.enabled = False
             layout.label(text="", icon_value=icon)
 
         else:
-            layout.label(text="",
-                         translate=False,
-                         icon_value=icon)
-
+            layout.label(text="", translate=False, icon_value=icon)
 
 def uilist_controls(ui, layout):
     """
@@ -91,7 +85,7 @@ def uilist_controls(ui, layout):
     ui.operator('pools.delete', "Remove", div, "CANCEL", active=active)
 
     div = row.split()
-    ui.operator("pools.create", "Create", div, "ZOOMIN")
+    ui.operator("pools.start", "Create", div, "ZOOMIN")
 
 
 def display_uilist(ui, layout):
@@ -194,7 +188,7 @@ def create(ui, layout):
     ui.label("New Pool", box)
     ui.prop(batch_pools, "pool_name", box, "Pool Name")
     ui.prop(batch_pools, "pool_size", box, "Pool Size")
-    ui.operator("pools.start", "Start Pool", box)
+    ui.operator("pools.run", "Start Pool", box)
 
     ui.label("", layout)
     ui.operator("pools.page", "Return to Pools", layout)

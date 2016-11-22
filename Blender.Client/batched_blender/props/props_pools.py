@@ -97,7 +97,7 @@ class PoolProps(bpy.types.PropertyGroup):
         description="Selected pool index")
 
     pool_size = bpy.props.IntProperty(
-        description="Number of instances in new pool",
+        description="Number of nodes in new pool",
         default=3,
         min=1,
         max=20)
@@ -154,15 +154,8 @@ class PoolProps(bpy.types.PropertyGroup):
 
 
 def register_props():
-    """
-    Register the pool property classes and assign to the blender
+    """Register the pool property classes and assign to the Blender
     context under "batch_pools".
-
-    :Returns:
-        - A :class:`.PoolProps` object
     """
-
     bpy.types.Scene.batch_pools = \
         bpy.props.PointerProperty(type=PoolProps)
-
-    return bpy.context.scene.batch_pools
