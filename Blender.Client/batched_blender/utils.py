@@ -70,17 +70,17 @@ class BatchUtils(object):
         return start_task
 
     @staticmethod
-    def get_auto_pool(batch, name):
+    def get_auto_pool(batch, name, lux):
         auto_pool = models.AutoPoolSpecification(
-            auto_pool_id_prefix="blender_auto",
+            auto_pool_id_prefix="luxblend_auto" if lux else "blender_auto",
             pool_lifetime_option=models.PoolLifetimeOption.job,
             keep_alive=False,
-            pool=BatchUtils.get_pool_config(batch, name)
+            pool=BatchUtils.get_pool_config(batch, name, lux)
         )
         return auto_pool
 
     @staticmethod
-    def get_pool_config(batch, name):
+    def get_pool_config(batch, name, lux):
         """Gets a virtual machine configuration for the specified distro
         and version from the list of Azure Virtual Machines Marketplace
         images verified to be compatible with the Batch service.
@@ -92,26 +92,39 @@ class BatchUtils(object):
         Marketplace image and node agent SKU to install on the compute nodes in
         a pool.
         """
-        distro = bpy.context.user_preferences.addons[__package__].preferences.vm_distro
-        version = bpy.context.user_preferences.addons[__package__].preferences.vm_version
-        node_agent_skus = batch.account.list_node_agent_skus()
-        node_agent = next(agent for agent in node_agent_skus
-                          for image_ref in agent.verified_image_references
-                          if distro.lower() in image_ref.offer.lower() and
-                          version.lower() in image_ref.sku.lower())
-        img_ref = [image_ref for image_ref in node_agent.verified_image_references
-                   if distro.lower() in image_ref.offer.lower() and
-                   version.lower() in image_ref.sku.lower()][-1]
-        vm_config = models.VirtualMachineConfiguration(
-            image_reference=img_ref,
-            node_agent_sku_id=node_agent.id)
+        props = bpy.context.scene.batch_pools
+        if lux:
+            appPackage = props.lux_app_image
+            appVersion = None if props.lux_app_version == 'default' else props.lux_app_version
+            pool_config = {
+                "display_name": name,
+                "vm_size": "medium",
+                "cloud_service_configuration": {'os_family':'4'},
+                "target_dedicated": props.pool_size,
+                "application_package_references": [
+                    {'application_id': appPackage,
+                     'version': appVersion}]}
+        else:
+            distro = bpy.context.user_preferences.addons[__package__].preferences.vm_distro
+            version = bpy.context.user_preferences.addons[__package__].preferences.vm_version
+            node_agent_skus = batch.account.list_node_agent_skus()
+            node_agent = next(agent for agent in node_agent_skus
+                              for image_ref in agent.verified_image_references
+                              if distro.lower() in image_ref.offer.lower() and
+                              version.lower() in image_ref.sku.lower())
+            img_ref = [image_ref for image_ref in node_agent.verified_image_references
+                       if distro.lower() in image_ref.offer.lower() and
+                       version.lower() in image_ref.sku.lower()][-1]
+            vm_config = models.VirtualMachineConfiguration(
+                image_reference=img_ref,
+                node_agent_sku_id=node_agent.id)
         
-        pool_config = {
-            "display_name": name,
-            "vm_size": bpy.context.user_preferences.addons[__package__].preferences.vm_type,
-            "virtual_machine_configuration": vm_config,
-            "target_dedicated": bpy.context.scene.batch_pools.pool_size,
-            "start_task": BatchUtils.install_blender()}
+            pool_config = {
+                "display_name": name,
+                "vm_size": bpy.context.user_preferences.addons[__package__].preferences.vm_type,
+                "virtual_machine_configuration": vm_config,
+                "target_dedicated": props.pool_size,
+                "start_task": BatchUtils.install_blender()}
         return pool_config
 
 class BatchOps(object):

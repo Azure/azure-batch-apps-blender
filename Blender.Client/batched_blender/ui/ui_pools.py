@@ -188,6 +188,9 @@ def create(ui, layout):
     ui.label("New Pool", box)
     ui.prop(batch_pools, "pool_name", box, "Pool Name")
     ui.prop(batch_pools, "pool_size", box, "Pool Size")
+    if bpy.context.scene.render.engine == 'LUXRENDER_RENDER':
+        ui.prop(batch_pools, "lux_app_image", box, "Application Package")
+        ui.prop(batch_pools, "lux_app_version", box, "Application Version")
     ui.operator("pools.run", "Start Pool", box)
 
     ui.label("", layout)

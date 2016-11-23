@@ -298,7 +298,7 @@ class BatchJobs(object):
 
         options = batch.models.JobListOptions(
             max_results=self.props.per_call,
-            filter="startswith(id,'blender_render')")
+            filter="startswith(id,'blender_render') or startswith(id,'luxblend_render')")
         job_iter = self.batch.job.list(options)
         if self.props.more:
             jobs = job_iter.get(self.props.more)

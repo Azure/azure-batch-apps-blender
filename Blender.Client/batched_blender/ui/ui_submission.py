@@ -47,7 +47,9 @@ def static(ui, layout, active):
     ui.label("Width: {0}".format(width), layout.row(), active=active)
     ui.label("Height: {0}".format(height), layout.row(), active=active)
     ui.label("Output: {0}".format(output), layout.row(), active=active)
-
+    if bpy.context.scene.render.engine == 'LUXRENDER_RENDER':
+        samples = bpy.context.scene.batch_submission.lux_samples
+        ui.label("LuxRender halt samples: {0}".format(samples), layout.row(), active=active)
 
 def variable(ui, layout, active):
     """Display frame selection controls.
@@ -63,6 +65,12 @@ def variable(ui, layout, active):
             label="Start Frame ", active=active)
     ui.prop(bpy.context.scene.batch_submission, "end_f", layout.row(),
             label="End Frame ", active=active)
+    if bpy.context.scene.render.engine == 'LUXRENDER_RENDER':
+        ui.prop(bpy.context.scene.batch_submission, "lux_tasks_per_frame", layout.row(),
+            label="Tasks Per Frame ", active=active)
+    else:
+        ui.prop(bpy.context.scene.batch_submission, "video_merge", layout.row(),
+            label="Merge Frames to Video ", active=active)
 
 
 def pool_select(ui, layout, active):
@@ -76,6 +84,9 @@ def pool_select(ui, layout, active):
     :type active: bool
     """
     ui.label("", layout)
+    if bpy.context.scene.render.engine == 'LUXRENDER_RENDER':
+        ui.prop(bpy.context.scene.batch_pools, "lux_app_image", layout.row(), "Application Package:", active=active)
+        ui.prop(bpy.context.scene.batch_pools, "lux_app_version", layout.row(), "Application Version:", active=active)
     ui.prop(bpy.context.scene.batch_submission, "pool_type", layout.row(),
             label=None, expand=True, active=active)
     if bpy.context.scene.batch_submission.pool_type == {"reuse"}:
@@ -111,6 +122,12 @@ def pre_submission(ui, layout):
     elif not bpy.context.scene.batch_submission.valid_range:
         ui.label("Warning: Selected frame range falls", layout)
         ui.label("outside global render range", layout)
+        row = layout.row(align=True)
+        row.alert=True
+        ui.operator("submission.start", "Submit Job", row)
+    elif bpy.data.scenes['Scene'].luxrender_halt.haltspp == 0:
+        ui.label("Warning: Not halt sample value set.", layout)
+        ui.label("Using default value {}".format(bpy.context.scene.batch_submission.lux_samples), layout)
         row = layout.row(align=True)
         row.alert=True
         ui.operator("submission.start", "Submit Job", row)
