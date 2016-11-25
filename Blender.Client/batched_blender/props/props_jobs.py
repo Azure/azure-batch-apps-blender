@@ -91,7 +91,6 @@ class JobProps(bpy.types.PropertyGroup):
     """
     stable_states = ["active","completed"]
     collection = []
-    thread = None
 
     jobs = bpy.props.CollectionProperty(
         type=JobDisplayProps,
@@ -111,6 +110,10 @@ class JobProps(bpy.types.PropertyGroup):
         soft_min=1,
         max=50,
         soft_max=50)
+
+    output_dir = bpy.props.StringProperty(
+        description="Output download directory",
+        subtype="DIR_PATH")
 
     def add_job(self, job, batch):
         """

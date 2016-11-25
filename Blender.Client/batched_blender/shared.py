@@ -231,7 +231,7 @@ class BatchSettings(object):
         self.assets = BatchAssets(batch, uploader)
         self.log.debug("Initialised assets module")
 
-        self.jobs = BatchJobs(batch)
+        self.jobs = BatchJobs(batch, uploader)
         self.log.debug("Initialised jobs module")
 
         self.pools = BatchPools(batch)

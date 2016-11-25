@@ -76,7 +76,7 @@ class BatchSubmission(object):
         """Maps the job configure, submitting and submission completed
         pages with their corresponding ui functions.
 
-        :rtype: dict of str, func pairs 
+        :rtype: dict of str, func pairs
         """
         def get_ui(name):
             name = name.lower()
@@ -117,8 +117,7 @@ class BatchSubmission(object):
         :rtype: set
         """
         submit_thread = lambda: BatchOps.session(self.submit_job)
-        self.thread = threading.Thread(
-            name="SubmitThread", target=submit_thread)
+        self.thread = threading.Thread(name="SubmitThread", target=submit_thread)
         bpy.ops.batch_submission.processing('INVOKE_DEFAULT')
         if context.scene.batch_session.page == "SUBMIT":
             context.scene.batch_session.page = "PROCESSING"
@@ -340,6 +339,7 @@ class BatchSubmission(object):
         session.log.info("Setting up job output storage container: {}".format(job_id))
         self.uploader.create_container(job.id, fail_on_exist=False)
 
+        #TODO: Support frame step
         job_tasks = []
         if lux:
             session.log.debug("Running LuxRender job")

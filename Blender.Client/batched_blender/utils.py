@@ -29,6 +29,8 @@
 import datetime
 import hashlib
 import os
+import platform
+import subprocess
 import sys
 
 import bpy
@@ -217,7 +219,6 @@ class BatchOps(object):
         bpy.utils.register_class(new_op)
         return name
 
-
 class BatchAsset(object):
 
     def __init__(self, file_path, client):
@@ -270,5 +271,121 @@ class BatchAsset(object):
             container = bpy.context.user_preferences.addons[__package__].preferences.storage_container
             blob_name = self.name + '_' + self.checksum
             self._client.create_blob_from_path(container, blob_name, self.path)
-        
 
+class JobWatcher(object):
+    """
+    Class for background job watcher.
+    """
+
+    def __init__(self, id, dir):
+        """
+        Create a new job watcher.
+        :Args:
+            - id (str): The ID of the job to watch.
+            - dir (str): The path of directory where outputs will be 
+              downloaded.
+        """
+        self.job_id = id
+        self.selected_dir = dir
+        self._log = bpy.context.scene.batch_session.log
+        self.job_watcher = os.path.join(
+            os.path.dirname(__file__), "scripts", "job_watcher.py")
+
+        self.platform = platform.system()
+        if self.platform == "Windows":
+            self.proc_cmd = ["WMIC", "PROCESS", "where", "(Name='python.exe')", "get", "Commandline"]
+            self.quotes = '"'
+            self.splitter = 'python.exe'
+
+        elif self.platform == "Darwin":
+            self.proc_cmd = ["ps", "-ef"]
+            self.quotes = '\\\\"'
+            self.splitter = '\n'
+
+        else:
+            self._log.warning("Cannot launch job watcher: OS not supported.")
+            return
+
+        self.start_job_watcher() 
+
+    def start_job_watcher(self):
+        """Launch job watcher process using Blender's Python."""
+        #try:
+        if not self.check_existing_process():
+            env = self.get_environment()
+            self._log.info("prepping args")
+            args = self.prepare_args()
+            print(args)
+
+            if self.platform == 'Windows':
+                start_cmd = ["start", bpy.app.binary_path_python]
+                start_cmd.extend(args)
+            elif self.platform == 'Darwin':
+                start_cmd = ["osascript", "-e"]
+                start_cmd.append("'tell application \"Terminal\" to do script \"{} {}\"'".format(
+                    bpy.app.binary_path_python,
+                    " ".join(args)))
+
+            self._log.debug("Running command: {0}".format(start_cmd))
+            process = subprocess.run(start_cmd, stdout=subprocess.PIPE, env=env, shell=True)
+            self._log.info("Job watching for job with id {0}"
+                            " has started.".format(args[2]))
+
+        else:
+            self._log.warning("Existing process running with current job ID. "
+                            "Job watching already in action.")
+
+        #except Exception as e:
+        #    self._log.warning(e)
+
+    def get_environment(self):
+        env = dict(os.environ)
+        prefs = bpy.context.user_preferences.addons[__package__].preferences
+        env['BLENDER_BATCH_ACCOUNT'] = prefs.account
+        env['BLENDER_BATCH_KEY'] = prefs.key
+        env['BLENDER_BATCH_ENDPOINT'] = prefs.endpoint
+        env['BLENDER_STORAGE_ACCOUNT'] = prefs.storage
+        env['BLENDER_STORAGE_KEY'] = prefs.storage_key
+        return env
+
+    def check_existing_process(self):
+        """Check whether a job watcher for the specified job
+        is already running.
+        :returns: Whether the process already exists.
+        :rtype: bool
+        """
+        self._log.info("Checking that a job watching process is not "
+                       "already running for this job.")
+        processes = subprocess.run(self.proc_cmd, stdout=subprocess.PIPE, universal_newlines=True)
+        processes = processes.stdout.split(self.splitter)
+        running = [proc for proc in processes if proc.find(self.job_id) >= 0]
+        if running:
+            return True
+        return False
+
+    def prepare_args(self):
+        """Prepare the command args to execute with python.
+        :returns: A list of cleaned args.
+        :rtype: List of str
+        """
+        args = [self.job_watcher,
+                self.job_id,
+                self.selected_dir]
+        self._log.debug("Preparing commandline arguments...")
+        return self.cleanup_args(args)
+
+    def cleanup_args(self, args):
+        """
+        Clean up path command line args to double back-slashes and quote
+        strings for successful mel execution.
+        :Args:
+            - args (list): List of str args to be cleaned.
+        :Returns:
+            - List of cleaned string args.
+        """
+        prepared_args = []
+        for arg in args:
+            #arg = os.path.normpath(arg).replace('\\', '\\\\')
+            prepared_args.append(self.quotes + str(arg) + self.quotes)
+        self._log.debug("Cleaned up commandline arguments: {}, {}, {}".format(*prepared_args))
+        return prepared_args

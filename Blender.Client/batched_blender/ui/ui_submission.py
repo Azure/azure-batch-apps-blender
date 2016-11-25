@@ -125,7 +125,7 @@ def pre_submission(ui, layout):
         row = layout.row(align=True)
         row.alert=True
         ui.operator("submission.start", "Submit Job", row)
-    elif bpy.data.scenes['Scene'].luxrender_halt.haltspp == 0:
+    elif bpy.context.scene.render.engine == 'LUXRENDER_RENDER' and bpy.data.scenes['Scene'].luxrender_halt.haltspp == 0:
         ui.label("Warning: Not halt sample value set.", layout)
         ui.label("Using default value {}".format(bpy.context.scene.batch_submission.lux_samples), layout)
         row = layout.row(align=True)
