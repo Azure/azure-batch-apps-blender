@@ -39,10 +39,6 @@ try:
     batch_client = None
     storage_client = None
 finally:
-    try:
-        input = raw_input
-    except NameError:
-        pass
     print('\n' + str(EXIT_STRING))
     if input(header("Press 'enter' to exit")):
         sys.exit()

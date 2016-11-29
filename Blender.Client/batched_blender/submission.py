@@ -140,10 +140,10 @@ class BatchSubmission(object):
         :rtype: set
         """
         if event.type == 'TIMER':
-            context.scene.batch_session.log.debug("SubmitThread complete.")
             if not self.thread.is_alive():
+                context.scene.batch_session.log.debug("SubmitThread complete.")
                 context.window_manager.event_timer_remove(op._timer)
-            return {'FINISHED'}
+                return {'FINISHED'}
         return {'RUNNING_MODAL'}
 
     def _processing_invoke(self, op, context, event):
@@ -329,7 +329,6 @@ class BatchSubmission(object):
             job_id, 
             self.get_pool(),
             display_name=job_name,
-            on_all_tasks_complete='terminateJob',
             uses_task_dependencies=True)
 
         if props.video_merge:
@@ -384,11 +383,16 @@ class BatchSubmission(object):
             if failed_tasks:
                 [session.log.error("{0}: {1}".format(t.task_id, t.error)) for t in failed_tasks]
                 raise ValueError("Some tasks failed to submit.")
-        except Exception:
+            self.batch.job.patch(job_id, {'on_all_tasks_complete':'terminateJob'})
+        except Exception as e:
             try:
                 self.batch.job.delete(job_id)
                 self.uploader.delete_container(job.id, fail_not_exist=False)
                 session.log.info("Cleaned up failed job submission.")
+                print(e.__dict__)
+                print(e.error.__dict__)
+                for t in e.error.values:
+                    print(t.__dict__)
             except Exceptopn as exp:
                 session.log.info("Couldn't clean up job: {}".format(exp))
             raise

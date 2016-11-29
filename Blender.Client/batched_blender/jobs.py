@@ -61,15 +61,13 @@ class BatchJobs(object):
             - "download": Download all the outputs of the selected job.
             - "loading": Modal loading of job information
         """
-        ops = []
-        ops.append(BatchOps.register("jobs.page", "Jobs", self._jobs))
-        ops.append(BatchOps.register("jobs.load_more", "Load more jobs", self._more))
-        ops.append(BatchOps.register("jobs.refresh", "Refresh", self._refresh))
-        ops.append(BatchOps.register("jobs.delete", "Delete job", self._delete))
-        ops.append(BatchOps.register("jobs.download", "Delete job", self._download))
-        ops.append(BatchOps.register("jobs.loading", "Loading jobs",
-                                     modal=self._loading_modal, invoke=self._loading_invoke, _timer=None))
-        return ops
+        BatchOps.register("jobs.page", "Jobs", self._jobs)
+        BatchOps.register("jobs.load_more", "Load more jobs", self._more)
+        BatchOps.register("jobs.refresh", "Refresh", self._refresh)
+        BatchOps.register("jobs.delete", "Delete job", self._delete)
+        BatchOps.register("jobs.download", "Delete job", self._download)
+        BatchOps.register("jobs.loading", "Loading jobs",
+                          modal=self._loading_modal, invoke=self._loading_invoke, _timer=None)
 
     def _register_ui(self):
         """Maps the jobs and loading pages with their corresponding
@@ -278,7 +276,7 @@ class BatchJobs(object):
     def pending_delete(self):
         """Get a list of the jobs that have been selected for delete. 
 
-        :returns: Indexes of the selected pools.
+        :returns: Indexes of the selected jobs.
         :rtype: List of int
         """
         jobs = bpy.context.scene.batch_jobs.jobs

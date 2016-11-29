@@ -155,8 +155,8 @@ def display_details(ui, outerBox):
             ui.prop(selected, 'pool', proprow)
         else:
             ui.label("Pool: {0}".format(selected.pool), col)
-        ui.prop(batch_jobs, 'output_dir', col)
-        ui.operator("jobs.download", "Download Outputs", col)
+        #ui.prop(batch_jobs, 'output_dir', col)
+        #ui.operator("jobs.download", "Download Outputs", col)
 
 def loading(ui, layout):
     """

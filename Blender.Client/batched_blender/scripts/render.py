@@ -1,9 +1,20 @@
+
 import datetime
 import glob
 import os
 import sys
 import bpy
-import azure.storage.blob as az_storage
+
+try:
+    sys.path.append("/usr/local/lib/python3.4/site-packages")
+    sys.path.append("/usr/local/lib/python3.4/dist-packages")
+    sys.path.append("/usr/lib/python3.4/site-packages")
+    sys.path.append("/usr/lib/python3.4/dist-packages")
+    import azure.storage.blob as az_storage
+except ImportError:
+    print("Failed to import azure module")
+    print(e)
+    sys.exit(4)
 
 try:
     job_id = os.environ["AZ_BATCH_JOB_ID"]

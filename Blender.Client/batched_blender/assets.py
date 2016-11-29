@@ -1,6 +1,6 @@
 ﻿#-------------------------------------------------------------------------
 #
-# Batch Apps Blender Addon
+# Azure Batch Blender Addon
 #
 # Copyright (c) Microsoft Corporation.  All rights reserved.
 #
@@ -50,80 +50,33 @@ class BatchAssets(object):
     pages = ["ASSETS"]
 
     def __init__(self, manager, uploader):
-
         self.batch = manager
-        self.ops = self._register_ops()
-        self.props = self._register_props()
         self.ui = self._register_ui()
         self.uploader = uploader
-
-    def display(self, ui, layout):
-        """
-        Invokes the corresponding ui function depending on the session's
-        current page.
-
-        :Args:
-            - ui (blender :class:`.Interface`): The instance of the Interface
-              panel class.
-            - layout (blender :class:`bpy.types.UILayout`): The layout object,
-              derived from the Interface panel. Used for creating ui
-              components.
-
-        :Returns:
-            - Runs the display function for the applicable page.
-        """
-        return self.ui[bpy.context.scene.batch_session.page](ui, layout)
-
-    def _register_props(self):
-        """
-        Registers and retrieves the asset property objects.
-        These properties are assigned to the scene.batch_assets context.
-
-        It also resets the current job filepath, to prevent this being
-        persisted between different Blender scenes.
-
-        :Returns:
-            - :class:`.AssetProps`
-        """
-
-        props = props_assets.register_props()
-        props.path = ""
-        return props
+        props_assets.register_props()
+        self._register_ops()
 
     def _register_ops(self):
+        """Registers each asset operator with a batch_assets prefix.
+        Page operators:
+            - "page": Open the asset configuration view.
+            - "refresh": Refresh/reset the currently displayed assets.
+            - "upload": Upload the currently selected assets.
+            - "remote": Remove selected assets from the current display.
+            - "add": Add an additional asset to the current display.
         """
-        Registers each asset operator with a batch_assets prefix.
-
-        :Returns:
-            - A list of the names (str) of the registered asset operators.
-        """
-        ops = []
-        ops.append(BatchOps.register("assets.page",
-                                         "Scene assets",
-                                         self._assets))
-        ops.append(BatchOps.register("assets.refresh",
-                                         "Refresh assets",
-                                         self._refresh))
-        ops.append(BatchOps.register("assets.upload",
-                                         "Upload selected assets",
-                                         self._upload))
-        ops.append(BatchOps.register("assets.remove",
-                                         "Remove asset",
-                                         invoke=self._remove))
-        ops.append(BatchOps.register("assets.add", "Add asset",
-                                         self._add_execute,
-                                         invoke=self._add_invoke,
-                                         filepath=bpy.props.StringProperty(
-                                             subtype="FILE_PATH")))
-        return ops
+        BatchOps.register("assets.page", "Scene assets", self._assets)
+        BatchOps.register("assets.refresh", "Refresh assets", self._refresh)
+        BatchOps.register("assets.upload", "Upload selected assets", self._upload)
+        BatchOps.register("assets.remove", "Remove asset", invoke=self._remove)
+        BatchOps.register("assets.add", "Add asset", self._add_execute,
+                          invoke=self._add_invoke,
+                          filepath=bpy.props.StringProperty(subtype="FILE_PATH"))
 
     def _register_ui(self):
-        """
-        Matches the assets page with its corresponding ui function.
+        """Maps the assets page with its corresponding ui function.
 
-        :Returns:
-            - A dictionary mapping the page name to its corresponding
-              ui function.
+        :rtype: dict of str, func pairs
         """
         def get_asset_ui(name):
             name = name.lower()
@@ -149,23 +102,14 @@ class BatchAssets(object):
             - Blender-specific value {'FINISHED'} to indicate the operator has
               completed its action.
         """
+        props = context.scene.batch_assets
         session = context.scene.batch_session
         session.page = "ASSETS"
-        self.props = context.scene.batch_assets
-
         new_path = self.get_jobpath()
-
-        #if new_path != self.props.path:
         session.log.debug("New scene, gathering assets.")
 
-        self.props.path = new_path
-
-        #if not self.props.temp:
-        #    session.log.debug("Not temp file - saving.")
-        #    bpy.ops.wm.save_mainfile()
-            
+        props.path = new_path
         self.generate_collection()
-
         return {'FINISHED'}
 
     def _refresh(self, op, context):
@@ -188,12 +132,12 @@ class BatchAssets(object):
               completed its action.
         """
         session = context.scene.batch_session
-        self.props = context.scene.batch_assets
+        props = context.scene.batch_assets
         new_path = self.get_jobpath()
 
-        if new_path != self.props.path:
+        if new_path != props.path:
             session.log.debug("New scene, resetting path.")
-            self.props.path = new_path
+            props.path = new_path
         
         self.generate_collection()
 
@@ -222,13 +166,14 @@ class BatchAssets(object):
               completed its action.
         """
         session = context.scene.batch_session
+        props = context.scene.batch_assets
         upload = self.pending_upload()
 
         session.log.info("{0} assets to be uploaded".format(len(upload)))
 
         for index in upload:
-            asset = self.props.collection[index]
-            display = self.props.assets[index]
+            asset = props.collection[index]
+            display = props.assets[index]
 
             try:
                 session.log.debug("Uploading {0}".format(asset.name))
@@ -261,11 +206,12 @@ class BatchAssets(object):
               completed its action.
         """
         session = context.scene.batch_session
+        props = context.scene.batch_assets
         session.log.debug("Selected file {0}".format(op.filepath))
 
         user_file = BatchAsset(op.filepath, self.uploader)
-        if user_file and user_file not in self.props.collection:
-            self.props.add_asset(user_file)
+        if user_file and user_file not in props.collection:
+            props.add_asset(user_file)
 
         else:
             session.log.warning("File {0} either duplicate or does not "
@@ -310,15 +256,25 @@ class BatchAssets(object):
             - Blender-specific value {'FINISHED'} to indicate the operator has
               completed its action.
         '''
-        if not self.props.assets:
-            return {'FINISHED'}
-
-        self.props.remove_selected()
+        if bpy.context.scene.batch_assets.assets:
+            bpy.context.scene.batch_assets.remove_selected()
         return {'FINISHED'}
 
-    def collect_assets(self):
+    def display(self, ui, layout):
+        """Invokes the corresponding ui function depending on the session's
+        current page.
+
+        :param ui: The instance of the Interface panel class.
+        :type ui: :class:`.Interface`
+        :param layout: The layout object, used for creating and placing ui components.
+        :type layout: :class:`bpy.types.UILayout`
+        :returns: The result of the UI operator - usually {'FINISHED'}
+        :rtype: set
         """
-        Generates a list of the external files referenced by the current
+        return self.ui[bpy.context.scene.batch_session.page](ui, layout)
+
+    def collect_assets(self):
+        """Generates a list of the external files referenced by the current
         blend file. After collection, the paths are made absolute and
         normalized.
         This currently includes files from:
@@ -328,13 +284,11 @@ class BatchAssets(object):
             - bpy.data.images
             - bpy.data.libraries
         
-        :Returns:
-            - A list of file paths as strings.
+        :rtype: List of str
         """
         asset_list = []
-
-        bpy.context.scene.batch_session.log.info(
-            "Collecting external assets.")
+        session = bpy.context.scene.batch_session
+        session.log.info("Collecting external assets.")
 
         for s in bpy.data.sounds:
             new_path = os.path.realpath(bpy.path.abspath(s.filepath))
@@ -360,112 +314,86 @@ class BatchAssets(object):
             new_path = os.path.realpath(bpy.path.abspath(l.filepath))
             asset_list.append(os.path.normpath(new_path))
 
-        bpy.context.scene.batch_session.log.info(
-            "Found %d asset files." % (len(asset_list)))
-
+        session.log.info("Found %d asset files." % (len(asset_list)))
         return asset_list
 
     def name_generator(self, size=8, chars=string.hexdigits):
-        """
-        Generates a random blend filename for a temporary blend file.
+        """Generates a random blend filename for a temporary blend file.
 
-        :Kwargs:
-            - size (int): The number of random chars to use. Default is 8.
-            - chars (string): The chars from which random chars will be
-              selected. Default is '0123456789abcdefABCDEF'
-
-        :Returns:
-            - A file name (str) with the prefix ``BATCHTMP_`` and
-              suffix ".blend".
+        :param size: The number of random chars to use. Default is 8.
+        :type size: int
+        :param chars: The chars from which random chars will be selected.
+         Default is '0123456789abcdefABCDEF'
+        :type chars: str
+        :returns: A file name with the prefix ``BATCHTMP_`` and suffix ".blend".
+        :rtype: str
         """
         return "BATCHTMP_"+''.join(random.choice(chars) for x in range(size))+".blend"
 
     def get_jobpath(self):
-        """
-        Gets the filepath to the job blend file. If currently using a saved
+        """Gets the filepath to the job blend file. If currently using a saved
         blend file, this path will be returned.
         If the current blend file has never been saved (i.e. it has no path),
         a temporary path will be generated in the Blender User Preferences
         temporary directory.
         This temp filepath will not be saved to until submission.
 
-        :Returns:
-            - The file path (str) to the .blend file.
+        :returns: The file path to the .blend file.
+        :rtype: str
         """
         #TODO: Test relative vs. absolute paths.
+        props = bpy.context.scene.batch_assets
         session = bpy.context.scene.batch_session
         temp_dir = bpy.context.user_preferences.filepaths.temporary_directory
-
-        if bpy.data.filepath == '' and self.props.temp:
-            session.log.debug(
-                "Blend path: Using current temp {0}".format(self.props.path))
-
-            if self.props.path:
-                return self.props.path
-
+        if bpy.data.filepath == '' and props.temp:
+            session.log.debug("Blend path: Using current temp {0}".format(props.path))
+            if props.path:
+                return props.path
             else:
                 return os.path.join(temp_dir, self.name_generator())
-
         elif bpy.data.filepath == '':
             temp_path = os.path.join(temp_dir, self.name_generator())
-            self.props.temp = True
-
-            session.log.debug(
-                "Blend path: Using new temp {0}".format(temp_path))
+            props.temp = True
+            session.log.debug("Blend path: Using new temp {0}".format(temp_path))
             return temp_path
-
         else:
-            self.props.temp = False
-
-            session.log.debug(
-                "Blend path: Using saved {0}".format(bpy.data.filepath))
+            props.temp = False
+            session.log.debug("Blend path: Using saved {0}".format(bpy.data.filepath))
             return bpy.data.filepath
 
     def generate_collection(self):
-        """
-        Runs :func:`.collect_assets` and converts the result path list into
-        Batch UserFile objects, which the props class then adds to
-        the display assets list as well as the UserFile collection.
+        """Runs :func:`.collect_assets` and converts the result path list into
+        :class:`.utils.BatchAsset` objects, which the props class then adds to
+        the display assets list.
 
+        :rtype: List of :class:`.utils.BatchAsset`
         """
+        props = bpy.context.scene.batch_assets
         session = bpy.context.scene.batch_session
-
-        self.props.reset()
+        props.reset()
         assets = self.collect_assets()
-
         for asset in assets:
             session.log.debug("Discovered asset {0}.".format(asset))
             user_file = BatchAsset(asset, self.uploader)
-
             if (os.path.exists(user_file.path) and 
-                user_file not in self.props.collection and
+                user_file not in props.collection and
                 not os.path.isdir(user_file.path)):
-                    self.props.add_asset(user_file)
-
+                    props.add_asset(user_file)
             else:
-                session.log.warning("File {0} either duplicate, directory, or does not "
-                                "exist.".format(user_file.name))
-        
-        if not self.props.temp:
+                session.log.warning(
+                    "File {0} either duplicate, directory, or "
+                    "does not exist.".format(user_file.name))
+        if not props.temp:
             session.log.debug("Adding blend file as asset.")
-            jobfile = BatchAsset(self.props.path, self.uploader)
-
-            if jobfile and jobfile not in self.props.collection:
-                self.props.add_asset(jobfile)
+            jobfile = BatchAsset(props.path, self.uploader)
+            if jobfile and jobfile not in props.collection:
+                props.add_asset(jobfile)
 
     def pending_upload(self):
+        """Get a list of the assets that have been selected for upload. 
+
+        :returns: Indexes of the selected assets.
+        :rtype: List of int
         """
-        Get a list of the assets that have selected for upload. 
-
-        :Returns:
-            - A list of the indexes (int) of the items in the display
-              assets list that have been selected for upload.
-        """
-
-        upload_me = []
-
-        for index, asset in enumerate(self.props.assets):
-            if asset.upload_checkbox:
-                upload_me.append(index)
-
-        return upload_me
+        assets = bpy.context.scene.batch_assets.assets
+        return [i for i, a in enumerate(assets) if a.upload_checkbox]

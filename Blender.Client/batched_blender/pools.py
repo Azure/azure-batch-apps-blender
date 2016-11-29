@@ -73,7 +73,7 @@ class BatchPools(object):
         """Maps the pools and create pool pages with their corresponding
         ui functions.
 
-        :rtype: dict of str, func pairs 
+        :rtype: dict of str, func pairs
         """
         def get_pools_ui(name):
             name = name.lower()

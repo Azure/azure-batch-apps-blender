@@ -47,8 +47,9 @@ class BatchUtils(object):
             "sudo add-apt-repository -y ppa:thomas-schiex/blender",
             "sudo apt-get update",
             "sudo apt-get -q -y install blender",
-            "sudo apt-get -y install python-pip",
-            "pip install azure-storage==0.32.0"
+            "sudo apt-get -y install python3-pip",
+            "pip3 install azure-storage==0.32.0",
+            "pip3 install azure-batch==1.1.0"
             ]
 
     @staticmethod
@@ -297,13 +298,13 @@ class JobWatcher(object):
             self.quotes = '"'
             self.splitter = 'python.exe'
 
-        elif self.platform == "Darwin":
-            self.proc_cmd = ["ps", "-ef"]
-            self.quotes = '\\\\"'
-            self.splitter = '\n'
+        #elif self.platform == "Darwin":
+        #    self.proc_cmd = ["ps", "-ef"]
+        #    self.quotes = '\\\\"'
+        #    self.splitter = '\n'
 
         else:
-            self._log.warning("Cannot launch job watcher: OS not supported.")
+            self._log.warning("Cannot launch job watcher: OS not yet supported.")
             return
 
         self.start_job_watcher() 
@@ -318,7 +319,7 @@ class JobWatcher(object):
             print(args)
 
             if self.platform == 'Windows':
-                start_cmd = ["start", bpy.app.binary_path_python]
+                start_cmd = [bpy.app.binary_path_python] #["start", bpy.app.binary_path_python]
                 start_cmd.extend(args)
             elif self.platform == 'Darwin':
                 start_cmd = ["osascript", "-e"]
@@ -327,9 +328,11 @@ class JobWatcher(object):
                     " ".join(args)))
 
             self._log.debug("Running command: {0}".format(start_cmd))
-            process = subprocess.run(start_cmd, stdout=subprocess.PIPE, env=env, shell=True)
+            process = subprocess.run(start_cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE, env=env)
             self._log.info("Job watching for job with id {0}"
                             " has started.".format(args[2]))
+            print(process.stdout)
+            print(process.stderr)
 
         else:
             self._log.warning("Existing process running with current job ID. "
