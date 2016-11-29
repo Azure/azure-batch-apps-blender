@@ -73,7 +73,7 @@ class BatchPools(object):
         """Maps the pools and create pool pages with their corresponding
         ui functions.
 
-        :rtype: dict of str, func pairs 
+        :rtype: dict of str, func pairs
         """
         def get_pools_ui(name):
             name = name.lower()
@@ -97,12 +97,13 @@ class BatchPools(object):
         """
         session = context.scene.batch_session
         props = context.scene.batch_pools
+        lux = bpy.context.scene.render.engine == 'LUXRENDER_RENDER'
         props.reset()
 
         #TODO: Load pools in thread
         session.log.debug("Getting pool data.")
         options = models.PoolListOptions(
-            filter="startswith(id,'blender')")
+            filter="startswith(id,'lux')" if lux else "startswith(id,'blender')")
         pools = [p for p in self.batch.pool.list(options)]
         session.log.info("Retrieved {0} pool references.".format(len(pools)))
         for pool in pools:
@@ -157,11 +158,14 @@ class BatchPools(object):
         """
         session = context.scene.batch_session
         props = context.scene.batch_pools
+        lux = bpy.context.scene.render.engine == 'LUXRENDER_RENDER'
         pool_id = kwargs.get('id', "blender_pool_{}".format(BatchUtils.current_time()))
+        if lux:
+            pool_id = "luxblend_pool_{}".format(BatchUtils.current_time())
         session.log.info("Creating pool {}".format(pool_id))
         name = props.pool_name if props.pool_name else pool_id
         pool = models.PoolAddParameter(
-            pool_id, **BatchUtils.get_pool_config(self.batch, name))
+            pool_id, **BatchUtils.get_pool_config(self.batch, name, lux))
         self.batch.pool.add(pool)
         session.log.info(
             "Started new pool with ID: {0}".format(pool_id))

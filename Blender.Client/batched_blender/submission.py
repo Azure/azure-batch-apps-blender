@@ -55,10 +55,10 @@ class BatchSubmission(object):
         self.batch = batch
         self.uploader = uploader
         self.job_file = None
+        self.thread = None
         self.ui = self._register_ui()
         props_submission.register_props()
-        self._register_ops()        
-
+        self._register_ops()
 
     def _register_ops(self):
         """Registers each job submission operator with a batch_submission
@@ -76,7 +76,7 @@ class BatchSubmission(object):
         """Maps the job configure, submitting and submission completed
         pages with their corresponding ui functions.
 
-        :rtype: dict of str, func pairs 
+        :rtype: dict of str, func pairs
         """
         def get_ui(name):
             name = name.lower()
@@ -117,8 +117,7 @@ class BatchSubmission(object):
         :rtype: set
         """
         submit_thread = lambda: BatchOps.session(self.submit_job)
-        context.scene.batch_submission.thread = threading.Thread(
-            name="SubmitThread", target=submit_thread)
+        self.thread = threading.Thread(name="SubmitThread", target=submit_thread)
         bpy.ops.batch_submission.processing('INVOKE_DEFAULT')
         if context.scene.batch_session.page == "SUBMIT":
             context.scene.batch_session.page = "PROCESSING"
@@ -141,10 +140,10 @@ class BatchSubmission(object):
         :rtype: set
         """
         if event.type == 'TIMER':
-            context.scene.batch_session.log.debug("SubmitThread complete.")
-            if not context.scene.batch_submission.thread.is_alive():
+            if not self.thread.is_alive():
+                context.scene.batch_session.log.debug("SubmitThread complete.")
                 context.window_manager.event_timer_remove(op._timer)
-            return {'FINISHED'}
+                return {'FINISHED'}
         return {'RUNNING_MODAL'}
 
     def _processing_invoke(self, op, context, event):
@@ -161,7 +160,7 @@ class BatchSubmission(object):
          to indicate the thread continues to run.
         :rtype: set
         """
-        context.scene.batch_submission.thread.start()
+        self.thread.start()
         context.scene.batch_session.log.debug("SubmitThread initiated.")
         context.window_manager.modal_handler_add(op)
         op._timer = context.window_manager.event_timer_add(1, context.window)
@@ -202,6 +201,7 @@ class BatchSubmission(object):
         """
         session = bpy.context.scene.batch_session
         props = bpy.context.scene.batch_submission
+        lux = bpy.context.scene.render.engine == 'LUXRENDER_RENDER'
         pool = None
 
         if props.pool_type == {"reuse"} and props.pool_id:
@@ -222,7 +222,7 @@ class BatchSubmission(object):
         elif props.pool_type == {"auto"}:
             name = "Blender Auto Pool {}".format(BatchUtils.current_time())
             session.log.info("Creating auto-pool {}".format(pool_name))
-            auto_pool = BatchUtils.get_auto_pool(self.batch, name)
+            auto_pool = BatchUtils.get_auto_pool(self.batch, name, lux)
             pool = models.PoolInformation(auto_pool_specification=auto_pool)
             return pool
 
@@ -294,13 +294,7 @@ class BatchSubmission(object):
                 uploading.append(self.job_file)
         return self.upload_assets(uploading)
 
-    def generate_container_sas(self, job_id):
-        expiry = datetime.datetime.utcnow() + datetime.timedelta(days=7)
-        permissions = blob.ContainerPermissions(read=True, write=True, list=True)
-        return self.uploader.generate_container_shared_access_signature(
-            container, blob_name, permission=permissions, expiry=expiry)
-
-    def merge_task(self, tasks, container_sas):
+    def merge_task(self, tasks, prefs):
         merge_script = os.path.join(os.path.dirname(__file__), "scripts", self.merge_cmd)
         all_tasks = [t.id for t in tasks]
         blender_cmd = "blender -b -P \"{}\"".format(self.merge_cmd)
@@ -309,7 +303,9 @@ class BatchSubmission(object):
             display_name="Merge Task",
             depends_on={'task_ids': all_tasks},
             resource_files = self.upload_assets([BatchAsset(render_script, self.uploader)]),
-            environment_settings=[models.EnvironmentSetting("STORAGE", container_sas)])
+            environment_settings=[
+                models.EnvironmentSetting("STORAGE_ACCOUNT", prefs.storage),
+                models.EnvironmentSetting("STORAGE_KEY", prefs.storage_key)])
 
     def submit_job(self):
         """The job submission process including the uploading
@@ -318,34 +314,65 @@ class BatchSubmission(object):
         """
         props = bpy.context.scene.batch_submission
         session = bpy.context.scene.batch_session
+        pools = bpy.context.scene.batch_pools
         assets = bpy.context.scene.batch_assets
+        prefs = bpy.context.user_preferences.addons['batched_blender'].preferences
+        lux = bpy.context.scene.render.engine == 'LUXRENDER_RENDER'
         session.log.info("Starting new job submission.")
         self.valid_scene(bpy.context)
 
-        job_id = 'blender_render_' + bpy.path.clean_name(datetime.datetime.now().isoformat())
+        job_id = 'blender-render-{}'.format(BatchUtils.current_time())
+        if lux:
+            job_id = 'luxblend-render-{}'.format(BatchUtils.current_time())
         job_name = props.title if props.title else job_id
-        job = models.JobAddParameter(job_id, self.get_pool(), display_name=job_name)
+        job = models.JobAddParameter(
+            job_id, 
+            self.get_pool(),
+            display_name=job_name,
+            uses_task_dependencies=True)
+
         if props.video_merge:
             job.metadata = [{'name':'video_merge', 'value':'true'}]
         job_assets = self.configure_assets()
 
-        session.log.info("Setting up job output storage container.")
+        session.log.info("Setting up job output storage container: {}".format(job_id))
         self.uploader.create_container(job.id, fail_on_exist=False)
-        container_sas = self.generate_container_sas(job.id)
 
+        #TODO: Support frame step
         job_tasks = []
-        for task in range(props.start_f, props.end_f+1):
-            blender_cmd = "blender -b \"{}\" -P \"{}\"".format(self.job_file.name, self.render_cmd)
-            linux_cmd = "/bin/bash -c 'set -e; set -o pipefail; {}; wait'".format(blender_cmd)
-            job_tasks.append(models.TaskAddParameter(
-                str(task).rjust(len(str(props.end_f)), '0'),
-                linux_cmd,
-                resource_files=job_assets,
-                display_name="Frame {}".format(task),
-                environment_settings=[models.EnvironmentSetting("STORAGE", container_sas)]))
-        if props.video_merge:
-            job_tasks.append(self.merge_task(job_tasks, container_sas))
+        if lux:
+            session.log.debug("Running LuxRender job")
+            for task in range(props.start_f, props.end_f+1):
+                env_var = "%AZ_BATCH_APP_PACKAGE_{}%".format(pools.lux_app_image.upper())
+                if pools.lux_app_version != 'default':
+                    env_var += "#{}".format(pools.lux_app_version.upper())
+                blender_cmd = "cmd /c {}\\Blender\\blender.exe -b {} -P render.py < NUL".format(env_var, self.job_file.name)
+                job_tasks.append(models.TaskAddParameter(
+                    str(task).rjust(len(str(props.end_f)), '0'),
+                    blender_cmd,
+                    resource_files=job_assets,
+                    display_name="Frame {}".format(task),
+                    environment_settings=[
+                        models.EnvironmentSetting("HALT_SAMPLES", str(props.lux_samples)),
+                        models.EnvironmentSetting("STORAGE_ACCOUNT", prefs.storage),
+                        models.EnvironmentSetting("STORAGE_KEY", prefs.storage_key)]))
+
+        else:
+            for task in range(props.start_f, props.end_f+1):
+                blender_cmd = "blender -b \"{}\" -P \"{}\"".format(self.job_file.name, self.render_cmd)
+                linux_cmd = "/bin/bash -c 'set -e; set -o pipefail; {}; wait'".format(blender_cmd)
+                job_tasks.append(models.TaskAddParameter(
+                    str(task).rjust(len(str(props.end_f)), '0'),
+                    linux_cmd,
+                    resource_files=job_assets,
+                    display_name="Frame {}".format(task),
+                    environment_settings=[
+                        models.EnvironmentSetting("STORAGE_ACCOUNT", prefs.storage),
+                        models.EnvironmentSetting("STORAGE_KEY", prefs.storage_key)]))
+            if props.video_merge:
+                job_tasks.append(self.merge_task(job_tasks, prefs))
         try:
+            session.log.debug("Adding job: {}".format(job_id))
             self.batch.job.add(job)
             failed_tasks = []
             for i in range(0, len(job_tasks), 100):
@@ -356,11 +383,16 @@ class BatchSubmission(object):
             if failed_tasks:
                 [session.log.error("{0}: {1}".format(t.task_id, t.error)) for t in failed_tasks]
                 raise ValueError("Some tasks failed to submit.")
-        except Exception:
+            self.batch.job.patch(job_id, {'on_all_tasks_complete':'terminateJob'})
+        except Exception as e:
             try:
                 self.batch.job.delete(job_id)
                 self.uploader.delete_container(job.id, fail_not_exist=False)
                 session.log.info("Cleaned up failed job submission.")
+                print(e.__dict__)
+                print(e.error.__dict__)
+                for t in e.error.values:
+                    print(t.__dict__)
             except Exceptopn as exp:
                 session.log.info("Couldn't clean up job: {}".format(exp))
             raise

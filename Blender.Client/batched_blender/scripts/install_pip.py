@@ -17,7 +17,6 @@ if not os.path.exists(pip_script):
         data = requests.get(_GET_PIP)
         script.write(data.text)
 
-
 import getpip
 try:
     getpip.main()

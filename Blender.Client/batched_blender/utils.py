@@ -29,6 +29,8 @@
 import datetime
 import hashlib
 import os
+import platform
+import subprocess
 import sys
 
 import bpy
@@ -45,8 +47,9 @@ class BatchUtils(object):
             "sudo add-apt-repository -y ppa:thomas-schiex/blender",
             "sudo apt-get update",
             "sudo apt-get -q -y install blender",
-            "sudo apt-get -y install python-pip",
-            "pip install azure-storage==0.32.0"
+            "sudo apt-get -y install python3-pip",
+            "pip3 install azure-storage==0.32.0",
+            "pip3 install azure-batch==1.1.0"
             ]
 
     @staticmethod
@@ -70,17 +73,17 @@ class BatchUtils(object):
         return start_task
 
     @staticmethod
-    def get_auto_pool(batch, name):
+    def get_auto_pool(batch, name, lux):
         auto_pool = models.AutoPoolSpecification(
-            auto_pool_id_prefix="blender_auto",
+            auto_pool_id_prefix="luxblend_auto" if lux else "blender_auto",
             pool_lifetime_option=models.PoolLifetimeOption.job,
             keep_alive=False,
-            pool=BatchUtils.get_pool_config(batch, name)
+            pool=BatchUtils.get_pool_config(batch, name, lux)
         )
         return auto_pool
 
     @staticmethod
-    def get_pool_config(batch, name):
+    def get_pool_config(batch, name, lux):
         """Gets a virtual machine configuration for the specified distro
         and version from the list of Azure Virtual Machines Marketplace
         images verified to be compatible with the Batch service.
@@ -92,26 +95,39 @@ class BatchUtils(object):
         Marketplace image and node agent SKU to install on the compute nodes in
         a pool.
         """
-        distro = bpy.context.user_preferences.addons[__package__].preferences.vm_distro
-        version = bpy.context.user_preferences.addons[__package__].preferences.vm_version
-        node_agent_skus = batch.account.list_node_agent_skus()
-        node_agent = next(agent for agent in node_agent_skus
-                          for image_ref in agent.verified_image_references
-                          if distro.lower() in image_ref.offer.lower() and
-                          version.lower() in image_ref.sku.lower())
-        img_ref = [image_ref for image_ref in node_agent.verified_image_references
-                   if distro.lower() in image_ref.offer.lower() and
-                   version.lower() in image_ref.sku.lower()][-1]
-        vm_config = models.VirtualMachineConfiguration(
-            image_reference=img_ref,
-            node_agent_sku_id=node_agent.id)
+        props = bpy.context.scene.batch_pools
+        if lux:
+            appPackage = props.lux_app_image
+            appVersion = None if props.lux_app_version == 'default' else props.lux_app_version
+            pool_config = {
+                "display_name": name,
+                "vm_size": "medium",
+                "cloud_service_configuration": {'os_family':'4'},
+                "target_dedicated": props.pool_size,
+                "application_package_references": [
+                    {'application_id': appPackage,
+                     'version': appVersion}]}
+        else:
+            distro = bpy.context.user_preferences.addons[__package__].preferences.vm_distro
+            version = bpy.context.user_preferences.addons[__package__].preferences.vm_version
+            node_agent_skus = batch.account.list_node_agent_skus()
+            node_agent = next(agent for agent in node_agent_skus
+                              for image_ref in agent.verified_image_references
+                              if distro.lower() in image_ref.offer.lower() and
+                              version.lower() in image_ref.sku.lower())
+            img_ref = [image_ref for image_ref in node_agent.verified_image_references
+                       if distro.lower() in image_ref.offer.lower() and
+                       version.lower() in image_ref.sku.lower()][-1]
+            vm_config = models.VirtualMachineConfiguration(
+                image_reference=img_ref,
+                node_agent_sku_id=node_agent.id)
         
-        pool_config = {
-            "display_name": name,
-            "vm_size": bpy.context.user_preferences.addons[__package__].preferences.vm_type,
-            "virtual_machine_configuration": vm_config,
-            "target_dedicated": bpy.context.scene.batch_pools.pool_size,
-            "start_task": BatchUtils.install_blender()}
+            pool_config = {
+                "display_name": name,
+                "vm_size": bpy.context.user_preferences.addons[__package__].preferences.vm_type,
+                "virtual_machine_configuration": vm_config,
+                "target_dedicated": props.pool_size,
+                "start_task": BatchUtils.install_blender()}
         return pool_config
 
 class BatchOps(object):
@@ -204,7 +220,6 @@ class BatchOps(object):
         bpy.utils.register_class(new_op)
         return name
 
-
 class BatchAsset(object):
 
     def __init__(self, file_path, client):
@@ -257,5 +272,123 @@ class BatchAsset(object):
             container = bpy.context.user_preferences.addons[__package__].preferences.storage_container
             blob_name = self.name + '_' + self.checksum
             self._client.create_blob_from_path(container, blob_name, self.path)
-        
 
+class JobWatcher(object):
+    """
+    Class for background job watcher.
+    """
+
+    def __init__(self, id, dir):
+        """
+        Create a new job watcher.
+        :Args:
+            - id (str): The ID of the job to watch.
+            - dir (str): The path of directory where outputs will be 
+              downloaded.
+        """
+        self.job_id = id
+        self.selected_dir = dir
+        self._log = bpy.context.scene.batch_session.log
+        self.job_watcher = os.path.join(
+            os.path.dirname(__file__), "scripts", "job_watcher.py")
+
+        self.platform = platform.system()
+        if self.platform == "Windows":
+            self.proc_cmd = ["WMIC", "PROCESS", "where", "(Name='python.exe')", "get", "Commandline"]
+            self.quotes = '"'
+            self.splitter = 'python.exe'
+
+        #elif self.platform == "Darwin":
+        #    self.proc_cmd = ["ps", "-ef"]
+        #    self.quotes = '\\\\"'
+        #    self.splitter = '\n'
+
+        else:
+            self._log.warning("Cannot launch job watcher: OS not yet supported.")
+            return
+
+        self.start_job_watcher() 
+
+    def start_job_watcher(self):
+        """Launch job watcher process using Blender's Python."""
+        #try:
+        if not self.check_existing_process():
+            env = self.get_environment()
+            self._log.info("prepping args")
+            args = self.prepare_args()
+            print(args)
+
+            if self.platform == 'Windows':
+                start_cmd = [bpy.app.binary_path_python] #["start", bpy.app.binary_path_python]
+                start_cmd.extend(args)
+            elif self.platform == 'Darwin':
+                start_cmd = ["osascript", "-e"]
+                start_cmd.append("'tell application \"Terminal\" to do script \"{} {}\"'".format(
+                    bpy.app.binary_path_python,
+                    " ".join(args)))
+
+            self._log.debug("Running command: {0}".format(start_cmd))
+            process = subprocess.run(start_cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE, env=env)
+            self._log.info("Job watching for job with id {0}"
+                            " has started.".format(args[2]))
+            print(process.stdout)
+            print(process.stderr)
+
+        else:
+            self._log.warning("Existing process running with current job ID. "
+                            "Job watching already in action.")
+
+        #except Exception as e:
+        #    self._log.warning(e)
+
+    def get_environment(self):
+        env = dict(os.environ)
+        prefs = bpy.context.user_preferences.addons[__package__].preferences
+        env['BLENDER_BATCH_ACCOUNT'] = prefs.account
+        env['BLENDER_BATCH_KEY'] = prefs.key
+        env['BLENDER_BATCH_ENDPOINT'] = prefs.endpoint
+        env['BLENDER_STORAGE_ACCOUNT'] = prefs.storage
+        env['BLENDER_STORAGE_KEY'] = prefs.storage_key
+        return env
+
+    def check_existing_process(self):
+        """Check whether a job watcher for the specified job
+        is already running.
+        :returns: Whether the process already exists.
+        :rtype: bool
+        """
+        self._log.info("Checking that a job watching process is not "
+                       "already running for this job.")
+        processes = subprocess.run(self.proc_cmd, stdout=subprocess.PIPE, universal_newlines=True)
+        processes = processes.stdout.split(self.splitter)
+        running = [proc for proc in processes if proc.find(self.job_id) >= 0]
+        if running:
+            return True
+        return False
+
+    def prepare_args(self):
+        """Prepare the command args to execute with python.
+        :returns: A list of cleaned args.
+        :rtype: List of str
+        """
+        args = [self.job_watcher,
+                self.job_id,
+                self.selected_dir]
+        self._log.debug("Preparing commandline arguments...")
+        return self.cleanup_args(args)
+
+    def cleanup_args(self, args):
+        """
+        Clean up path command line args to double back-slashes and quote
+        strings for successful mel execution.
+        :Args:
+            - args (list): List of str args to be cleaned.
+        :Returns:
+            - List of cleaned string args.
+        """
+        prepared_args = []
+        for arg in args:
+            #arg = os.path.normpath(arg).replace('\\', '\\\\')
+            prepared_args.append(self.quotes + str(arg) + self.quotes)
+        self._log.debug("Cleaned up commandline arguments: {}, {}, {}".format(*prepared_args))
+        return prepared_args

@@ -160,16 +160,17 @@ def get_task_percent(batch_client, job_id, task):
     """
     if(task.state == batchmodels.TaskState.completed):
         return 100
-    elif(task.state == batchmodels.TaskState.active or task.state == batchmodels.TaskState.preparing):
-        return 0
+    #elif(task.state == batchmodels.TaskState.active or task.state == batchmodels.TaskState.preparing):
     else:
-        file_text = read_task_file_as_string(
-                batch_client,
-                job_id,
-                task.id,
-                _STANDARD_OUT_FILE_NAME,
-                None)
-        return extract_percent_from_output(file_text)
+        return 0
+    #else:
+    #    file_text = read_task_file_as_string(
+    #            batch_client,
+    #            job_id,
+    #            task.id,
+    #            _STANDARD_OUT_FILE_NAME,
+    #            None)
+    #    return extract_percent_from_output(file_text)
 
 def get_job_percent(batch_client, job_id):
     """ Return the completed percent of the job.

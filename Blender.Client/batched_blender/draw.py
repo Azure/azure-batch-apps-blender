@@ -41,7 +41,7 @@ class Interface(bpy.types.Panel):
     bl_region_type = "WINDOW"
     bl_context = "render"
 
-    COMPAT_ENGINES = ['BLENDER_RENDER', 'CYCLES']
+    COMPAT_ENGINES = ['BLENDER_RENDER', 'CYCLES', 'LUXRENDER_RENDER']
 
     @classmethod
     def poll(self, context):

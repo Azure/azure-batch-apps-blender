@@ -79,6 +79,22 @@ def formatcheck(*args):
         submission.image_format = format
 
 @bpy.app.handlers.persistent
+def luxsamplescheck(*args):
+    """
+    Keep the Lux halt samples up to date with global settings
+    """
+    submission = bpy.context.scene.batch_submission
+    session = bpy.context.scene.batch_session
+    if session.page not in ["SUBMIT"]:
+        return
+    if bpy.context.scene.render.engine != 'LUXRENDER_RENDER':
+        return
+    samples = bpy.data.scenes['Scene'].luxrender_halt.haltspp
+    if samples == 0:
+        samples = 3
+    submission.lux_samples = samples
+
+@bpy.app.handlers.persistent
 def on_load(*args):
     """
     Event handler to update the frame range when a new blender scene
@@ -96,7 +112,6 @@ class SubmissionProps(bpy.types.PropertyGroup):
     """A display object representing a new job submission.
     This class is added to the Blender context.
     """
-    thread = None
 
     title = bpy.props.StringProperty(
         description="Job Title",
@@ -122,6 +137,16 @@ class SubmissionProps(bpy.types.PropertyGroup):
     video_merge = bpy.props.BoolProperty(
         description="Create video from rendered frames",
         default=False)
+
+    lux_samples = bpy.props.IntProperty(
+        description="Number of samples per pixel for render completion",
+        default=1,
+        min=1)
+
+    lux_tasks_per_frame = bpy.props.IntProperty(
+        description="Number of tasks over which rendering a single frame will be divided",
+        default=1,
+        min=1)
 
     supported_formats = {
         'PNG': 'PNG',
@@ -163,6 +188,7 @@ class SubmissionProps(bpy.types.PropertyGroup):
         bpy.app.handlers.load_post.append(on_load)
         bpy.app.handlers.scene_update_post.append(framecheck)
         bpy.app.handlers.scene_update_post.append(formatcheck)
+        bpy.app.handlers.scene_update_post.append(luxsamplescheck)
         on_load(None)
 
 

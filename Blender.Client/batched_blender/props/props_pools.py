@@ -106,6 +106,14 @@ class PoolProps(bpy.types.PropertyGroup):
         description="Name of the new pool",
         default="")
 
+    lux_app_image = bpy.props.StringProperty(
+        description="Name of the LuxRender application image",
+        default="LuxBlend")
+
+    lux_app_version = bpy.props.StringProperty(
+        description="Version of the LuxRender application image",
+        default="default")
+
     def add_pool(self, pool):
         """
         Add a pool to both the display and object lists.

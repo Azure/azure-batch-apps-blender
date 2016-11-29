@@ -32,7 +32,7 @@
   <ItemGroup>
     <Compile Include="batched_blender\assets.py" />
     <Compile Include="batched_blender\draw.py" />
-    <Compile Include="batched_blender\history.py" />
+    <Compile Include="batched_blender\jobs.py" />
     <Compile Include="batched_blender\helpers.py">
       <SubType>Code</SubType>
     </Compile>
@@ -44,18 +44,20 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="batched_blender\props\props_assets.py" />
-    <Compile Include="batched_blender\props\props_history.py" />
+    <Compile Include="batched_blender\props\props_jobs.py" />
     <Compile Include="batched_blender\props\props_pools.py" />
     <Compile Include="batched_blender\props\props_shared.py" />
     <Compile Include="batched_blender\props\props_submission.py" />
     <Compile Include="batched_blender\scripts\install_pip.py" />
+    <Compile Include="batched_blender\scripts\job_watcher.py" />
+    <Compile Include="batched_blender\scripts\render.py" />
     <Compile Include="batched_blender\shared.py" />
     <Compile Include="batched_blender\submission.py" />
     <Compile Include="batched_blender\ui\ui_bfiles.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="batched_blender\ui\ui_assets.py" />
-    <Compile Include="batched_blender\ui\ui_history.py" />
+    <Compile Include="batched_blender\ui\ui_jobs.py" />
     <Compile Include="batched_blender\ui\ui_pools.py" />
     <Compile Include="batched_blender\ui\ui_shared.py" />
     <Compile Include="batched_blender\ui\ui_submission.py" />
@@ -70,6 +72,11 @@
     <Folder Include="batched_blender\props\" />
     <Folder Include="batched_blender\scripts\" />
     <Folder Include="batched_blender\ui\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="batched_blender\requirements.txt">
+      <SubType>Code</SubType>
+    </Content>
   </ItemGroup>
   <Import Condition="Exists($(PtvsTargetsFile))" Project="$(PtvsTargetsFile)" />
   <Import Condition="!Exists($(PtvsTargetsFile))" Project="$(MSBuildToolsPath)\Microsoft.Common.targets" />
