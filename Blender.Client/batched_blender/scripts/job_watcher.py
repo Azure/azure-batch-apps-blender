@@ -26,22 +26,17 @@
 #
 #--------------------------------------------------------------------------
 
-try:
-    import time
-    import sys
-    import os
-    import re
+import time
+import sys
+import os
+import re
 
-    import azure.storage.blob as storage
-    import azure.batch as batch
-    from azure.batch.batch_auth import SharedKeyCredentials
+import azure.storage.blob as storage
+import azure.batch as batch
+from azure.batch.batch_auth import SharedKeyCredentials
 
-    batch_client = None
-    storage_client = None
-finally:
-    print('\n' + str(EXIT_STRING))
-    if input(header("Press 'enter' to exit")):
-        sys.exit()
+batch_client = None
+storage_client = None
 
 def header(header):
     header_chars = len(header)

@@ -295,7 +295,6 @@ class JobWatcher(object):
         self.platform = platform.system()
         if self.platform == "Windows":
             self.proc_cmd = ["WMIC", "PROCESS", "where", "(Name='python.exe')", "get", "Commandline"]
-            self.quotes = '"'
             self.splitter = 'python.exe'
 
         #elif self.platform == "Darwin":
@@ -311,35 +310,32 @@ class JobWatcher(object):
 
     def start_job_watcher(self):
         """Launch job watcher process using Blender's Python."""
-        #try:
-        if not self.check_existing_process():
-            env = self.get_environment()
-            self._log.info("prepping args")
-            args = self.prepare_args()
-            print(args)
+        try:
+            if not self.check_existing_process():
+                env = self.get_environment()
+                self._log.info("prepping args")
+                args = self.prepare_args()
+                print(args)
 
-            if self.platform == 'Windows':
-                start_cmd = [bpy.app.binary_path_python] #["start", bpy.app.binary_path_python]
-                start_cmd.extend(args)
-            elif self.platform == 'Darwin':
-                start_cmd = ["osascript", "-e"]
-                start_cmd.append("'tell application \"Terminal\" to do script \"{} {}\"'".format(
-                    bpy.app.binary_path_python,
-                    " ".join(args)))
+                if self.platform == 'Windows':
+                    start_cmd = ["start", bpy.app.binary_path_python]
+                    start_cmd.extend(args)
+                elif self.platform == 'Darwin':
+                    start_cmd = ["osascript", "-e"]
+                    start_cmd.append("'tell application \"Terminal\" to do script \"{} {}\"'".format(
+                        bpy.app.binary_path_python,
+                        " ".join(args)))
 
-            self._log.debug("Running command: {0}".format(start_cmd))
-            process = subprocess.run(start_cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE, env=env)
-            self._log.info("Job watching for job with id {0}"
-                            " has started.".format(args[2]))
-            print(process.stdout)
-            print(process.stderr)
+                self._log.debug("Running command: {0}".format(start_cmd))
+                process = subprocess.Popen(start_cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE, env=env, shell=True)
+                self._log.info("Job watching for job with id {0}"
+                                " has started.".format(args[2]))
+            else:
+                self._log.warning("Existing process running with current job ID. "
+                                "Job watching already in action.")
 
-        else:
-            self._log.warning("Existing process running with current job ID. "
-                            "Job watching already in action.")
-
-        #except Exception as e:
-        #    self._log.warning(e)
+        except Exception as e:
+            self._log.warning(e)
 
     def get_environment(self):
         env = dict(os.environ)
@@ -375,20 +371,5 @@ class JobWatcher(object):
                 self.job_id,
                 self.selected_dir]
         self._log.debug("Preparing commandline arguments...")
-        return self.cleanup_args(args)
-
-    def cleanup_args(self, args):
-        """
-        Clean up path command line args to double back-slashes and quote
-        strings for successful mel execution.
-        :Args:
-            - args (list): List of str args to be cleaned.
-        :Returns:
-            - List of cleaned string args.
-        """
-        prepared_args = []
-        for arg in args:
-            #arg = os.path.normpath(arg).replace('\\', '\\\\')
-            prepared_args.append(self.quotes + str(arg) + self.quotes)
-        self._log.debug("Cleaned up commandline arguments: {}, {}, {}".format(*prepared_args))
-        return prepared_args
+        #TODO: do we need to do escaping or quoting?
+        return args
