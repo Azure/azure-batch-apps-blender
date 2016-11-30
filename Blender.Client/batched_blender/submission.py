@@ -221,7 +221,7 @@ class BatchSubmission(object):
 
         elif props.pool_type == {"auto"}:
             name = "Blender Auto Pool {}".format(BatchUtils.current_time())
-            session.log.info("Creating auto-pool {}".format(pool_name))
+            session.log.info("Creating auto-pool {}".format(name))
             auto_pool = BatchUtils.get_auto_pool(self.batch, name, lux)
             pool = models.PoolInformation(auto_pool_specification=auto_pool)
             return pool

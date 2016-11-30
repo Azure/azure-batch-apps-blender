@@ -137,7 +137,7 @@ class BatchAssets(object):
 
         if new_path != props.path:
             session.log.debug("New scene, resetting path.")
-            props.path = new_path
+            props.path = new_path #TODO: Getting error here on scene change
         
         self.generate_collection()
 

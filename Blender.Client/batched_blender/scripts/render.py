@@ -11,7 +11,7 @@ try:
     sys.path.append("/usr/lib/python3.4/site-packages")
     sys.path.append("/usr/lib/python3.4/dist-packages")
     import azure.storage.blob as az_storage
-except ImportError:
+except ImportError as e:
     print("Failed to import azure module")
     print(e)
     sys.exit(4)
@@ -66,14 +66,18 @@ if not outputs:
     sys.exit(2)
 
 try:
+    failed = None
     for o in outputs:
-      print(o)
       if os.path.isfile(o) and os.path.splitext(o)[1] not in filter_outputs:
         try:
+          print("Uploading {}".format(o))
           storage.create_blob_from_path(job_id, os.path.basename(o), o)
         except Exception as e:
           print("Couldn't upload {}".format(o))
           print(e)
+          failed = e
+    if failed:
+      raise e
 except Exception as exp:
     print("Failed to upload output")
     print(exp)

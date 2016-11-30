@@ -118,11 +118,10 @@ class BatchPreferences(bpy.types.AddonPreferences):
                                        description="The OS to be used on the Cloud VMs.",
                                        default="Ubuntu")
 
-    vm_version = bpy.props.EnumProperty(items=(('14.04', '14.04', ''),
-                                               ('16.04', '16.04', '')),
+    vm_version = bpy.props.EnumProperty(items=(('16.04', '16.04', ''),),
                                         name="Cloud VM Linux Distro Version",
                                         description="The version of the OS to be used on the Cloud VMs.",
-                                        default="14.04")
+                                        default="16.04")
 
     def draw(self, context):
         """

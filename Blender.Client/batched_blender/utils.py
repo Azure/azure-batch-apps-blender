@@ -43,12 +43,13 @@ class BatchUtils(object):
 
     install_commands = [
             "sudo apt-get update",
-            "sudo apt-get install software-properties-common",
+            "sudo apt-get -y install build-essential libssl-dev libffi-dev python3-dev",
+            "sudo apt-get -y install software-properties-common",
             "sudo add-apt-repository -y ppa:thomas-schiex/blender",
             "sudo apt-get update",
             "sudo apt-get -q -y install blender",
             "sudo apt-get -y install python3-pip",
-            "pip3 install azure-storage==0.32.0",
+            "pip3 install azure-storage==0.33.0",
             "pip3 install azure-batch==1.1.0"
             ]
 
@@ -315,7 +316,6 @@ class JobWatcher(object):
                 env = self.get_environment()
                 self._log.info("prepping args")
                 args = self.prepare_args()
-                print(args)
 
                 if self.platform == 'Windows':
                     start_cmd = ["start", bpy.app.binary_path_python]
@@ -371,5 +371,4 @@ class JobWatcher(object):
                 self.job_id,
                 self.selected_dir]
         self._log.debug("Preparing commandline arguments...")
-        #TODO: do we need to do escaping or quoting?
-        return args
+        return args #TODO: Do we need to escape or quote args?
