@@ -130,7 +130,7 @@ def track_job_progress(id, dwnld_dir):
                 percentage = 0
             else:
                 percentage = (100 * len(completed_tasks)) / len(tasks)
-            print("Running - {}%".format(percentage))
+            print("Running - {0:02.1f}%".format(percentage))
             if errored_tasks:
                 print("    - Warning: some tasks have completed with a non-zero exit code.")
 
