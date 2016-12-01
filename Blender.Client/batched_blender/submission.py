@@ -302,7 +302,7 @@ class BatchSubmission(object):
         return models.TaskAddParameter("merge", linux_cmd,
             display_name="Merge Task",
             depends_on={'task_ids': all_tasks},
-            resource_files = self.upload_assets([BatchAsset(render_script, self.uploader)]),
+            resource_files = self.upload_assets([BatchAsset(merge_script, self.uploader)]),
             environment_settings=[
                 models.EnvironmentSetting("STORAGE_ACCOUNT", prefs.storage),
                 models.EnvironmentSetting("STORAGE_KEY", prefs.storage_key)])

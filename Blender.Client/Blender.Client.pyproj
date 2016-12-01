@@ -50,6 +50,7 @@
     <Compile Include="batched_blender\props\props_submission.py" />
     <Compile Include="batched_blender\scripts\install_pip.py" />
     <Compile Include="batched_blender\scripts\job_watcher.py" />
+    <Compile Include="batched_blender\scripts\merge.py" />
     <Compile Include="batched_blender\scripts\render.py" />
     <Compile Include="batched_blender\shared.py" />
     <Compile Include="batched_blender\submission.py" />

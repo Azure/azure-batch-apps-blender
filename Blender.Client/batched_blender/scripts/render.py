@@ -71,7 +71,7 @@ try:
       if os.path.isfile(o) and os.path.splitext(o)[1] not in filter_outputs:
         try:
           print("Uploading {}".format(o))
-          storage.create_blob_from_path(job_id, os.path.basename(o), o)
+          storage.create_blob_from_path(job_id, "frames/" + os.path.basename(o), o)
         except Exception as e:
           print("Couldn't upload {}".format(o))
           print(e)

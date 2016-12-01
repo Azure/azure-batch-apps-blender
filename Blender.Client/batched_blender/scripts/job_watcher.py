@@ -64,7 +64,7 @@ def _download_output(job_id, blob_name, output_path, size):
 
 def _track_completed_tasks(job_id, dwnld_dir):
     try:
-        job_outputs = storage_client.list_blobs(job_id)
+        job_outputs = storage_client.list_blobs(job_id, prefix="frames/")
         for output in job_outputs:
             output_file = os.path.join(dwnld_dir, output.name)
         
@@ -91,14 +91,14 @@ def _check_job_stopped(job):
     """
 
     stopped_status = [
-        batch.models.JobState.disabling,
         batch.models.JobState.disabled,
-        batch.models.JobState.terminating,
         batch.models.JobState.deleting
         ]
     running_status = [
         batch.models.JobState.active,
-        batch.models.JobState.enabling
+        batch.models.JobState.enabling,
+        batch.models.JobState.terminating,
+        batch.models.JobState.disabling
         ]
 
     try:
