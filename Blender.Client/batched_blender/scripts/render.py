@@ -30,9 +30,31 @@ except KeyError as exp:
     print(exp)
     sys.exit(1)
 
+# Redirect linked libraries then reload scene file
+for l in bpy.data.libraries:
+    if l.filepath:
+        l.filepath = os.path.basename(l.filepath)
+bpy.ops.wm.save_mainfile()
+bpy.ops.wm.open_mainfile("EXEC_DEFAULT", filepath=bpy.data.filepath)
+
+# Redirect assets
+for s in bpy.data.sounds:
+    if s.filepath:
+        s.filepath = os.path.basename(s.filepath)
+for f in bpy.data.fonts:
+    if f.filepath and f.filepath != "<builtin>":
+        f.filepath = os.path.basename(f.filepath)
+for t in bpy.data.textures:
+    if hasattr(t, 'image'):
+        if t.image:
+            t.image.filepath = os.path.basename(t.image.filepath)
+for i in bpy.data.images:
+    if i.filepath:
+        i.filepath = os.path.basename(i.filepath)
+
+
 frame = int(task_id)
 bpy.context.scene.frame_current = frame
-output = os.path.basename(bpy.context.scene.render.frame_path())
 output = os.path.basename(bpy.context.scene.render.frame_path())
 bpy.context.scene.render.filepath = "//" + output
 filter_outputs = ['.blend']
